@@ -1,0 +1,23 @@
+"""第2章 理论基础与数学模型"""
+
+def build(doc):
+    with doc.add_chapter("理论基础与数学模型", "2"):
+        doc.add_section("气体润滑基本方程")
+        doc.add_paragraph("气体润滑的基本方程是修正的雷诺方程[ref:Gross1962]。对于可压缩气体润滑，稳态下的雷诺方程可以表示为：")
+
+        doc.add_equation(r"\frac{\partial}{\partial x}\left(\frac{\rho h^3}{12\mu}\frac{\partial p}{\partial x}\right) + \frac{\partial}{\partial y}\left(\frac{\rho h^3}{12\mu}\frac{\partial p}{\partial y}\right) = 6\mu\frac{\partial(\rho u)}{\partial x} + 6\mu\frac{\partial(\rho v)}{\partial y}", label="2-1", ref="eq_reynolds")
+
+        doc.add_paragraph("其中，p为气体压力，h为气膜厚度，μ为气体动力粘度，ρ为气体密度[ref:Wang2010]。由式 [cite:eq_reynolds] 可知，...")
+
+        doc.add_section("边界条件")
+        doc.add_paragraph("气膜边界条件包括供气孔处的压力边界条件和气膜出口处的压力边界条件[ref:Zhang2015]。")
+
+        doc.add_paragraph("关于供气压力对轴承性能的影响，已有大量研究[ref:Gross1962][ref:Lee2012][ref:Zhang2015]。")
+        doc.add_paragraph(
+            "多孔质材料的孔径分布对轴承刚度有显著影响[ref:Zhang2015][ref:Chen2019]。"
+        )
+
+        doc.add_paragraph(
+            "关于多孔质材料，国内外已有大量公开研究。",
+            footnote="此处指公开发表的学术论文，不包括内部技术报告。"
+        )
