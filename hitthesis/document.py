@@ -25,6 +25,9 @@ from .ooxml_utils import (
     make_tbl_borders_none, apply_tc_borders, clear_cell_margins,
     make_border_element,
 )
+from .latex_render import (
+    add_latex_to_paragraph,
+)
 from .cover import add_cover as _add_cover
 from .authorization import add_authorization as _add_authorization
 from .compile import compile_document
@@ -182,18 +185,24 @@ class Thesis:
 
 
     def _add_text_with_superscripts(self, para, text):
-        """解析文本，处理上标和交叉引用"""
+        """解析文本，处理上标、交叉引用和 $...$ LaTeX 公式"""
         import re
         ref_keys = []
         last_end = 0
         positions = []
+
+        # 收集所有需要特殊处理的位置
         for m in re.finditer(r'\[ref:([a-zA-Z0-9_:.-]+)\]', text):
             positions.append((m.start(), m.end(), 'ref', m.group(1)))
         for m in re.finditer(r'\[cite:([a-zA-Z0-9_:.-]+)\]', text):
             positions.append((m.start(), m.end(), 'cite', m.group(1)))
         for m in re.finditer(r'\[(\d+(?:-\d+)?)\]', text):
             positions.append((m.start(), m.end(), 'num', m.group(1)))
+        for m in re.finditer(r'\$([^$]+)\$', text):
+            positions.append((m.start(), m.end(), 'latex', m.group(1)))
+
         positions.sort(key=lambda x: (x[0], x[1]))
+
         for start, end, ptype, content2 in positions:
             if ptype == 'ref':
                 if start > last_end:
@@ -208,11 +217,14 @@ class Thesis:
                     render_normal_text_with_superscripts(para, text[last_end:start])
                 if ptype == 'cite':
                     self._add_cite_runs(para, content2)
-                else:
+                elif ptype == 'num':
                     run = para.add_run(f'[{content2}]')
                     run.font.superscript = True
                     set_font(run, "Times New Roman", 12)
+                elif ptype == 'latex':
+                    add_latex_to_paragraph(para, content2, set_font)
                 last_end = end
+
         if ref_keys:
             add_ref_runs_merged(para, ref_keys, self._reference_db)
         if last_end < len(text):
