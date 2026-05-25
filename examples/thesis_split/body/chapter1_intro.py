@@ -5,6 +5,7 @@ def build(doc):
         doc.add_section("研究背景与意义")
         doc.add_paragraph("气体轴承是一种利用气体膜支承载荷的滑动轴承[ref:Gross1962]。与液体润滑轴承相比，气体轴承具有以下显著优点：无磨损、寿命长、精度保持性好；摩擦功耗极低，适用于高速运转[ref:Lee2012]。")
         doc.add_paragraph("然而，气体静压轴承也存在一些固有缺陷：由于气体的可压缩性和低粘度，承载能力和刚度较低是制约其广泛应用的主要瓶颈[ref:Zhang2015]。")
+        doc.add_paragraph("溶液中的金属离子浓度通常用 $mol/L$ 表示，如 $Fe^{3+}$ 离子的浓度为 $10^{-4}$ mol/L。")
 
         doc.add_section("国内外研究现状")
         doc.add_paragraph("关于气体静压轴承的研究可以追溯到20世纪50年代。1952年，Gross等人首次系统研究了静压气体轴承的基本理论[ref:Gross1962]。")

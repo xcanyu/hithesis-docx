@@ -1245,8 +1245,14 @@ class Thesis:
             para.alignment = WD_ALIGN_PARAGRAPH.CENTER
         elif h_align == 'right':
             para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        run = para.add_run(text)
-        set_font(run, "Times New Roman", 12)
+
+        # 公式渲染：如果是 LaTeX 公式，调用 latex2word
+        if text and '\\' in text:
+            from .latex_render import add_latex_to_paragraph
+            add_latex_to_paragraph(para, text, set_font)
+        else:
+            run = para.add_run(text or "")
+            set_font(run, "Times New Roman", 12)
 
         return para._element.get_or_add_pPr()
 
@@ -1517,13 +1523,17 @@ class Table:
 
 
     def set_cell(self, row, col, text, bold=False):
-        """设置单元格内容"""
+        """设置单元格内容（支持 $...$ 渲染）"""
         if self._table and row < len(self._table.rows) and col < len(self._table.columns):
             cell = self._table.rows[row].cells[col]
             para = cell.paragraphs[0]
             para.clear()
-            run = para.add_run(str(text))
-            set_font(run, "宋体", 10.5, bold)
+            if '$' in text and '$' in text[1:]:
+                # 有 $...$，走渲染逻辑
+                self.thesis._add_text_with_superscripts(para, text)
+            else:
+                run = para.add_run(str(text))
+                set_font(run, "宋体", 10.5, bold)
 
 
 class Figure:

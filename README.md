@@ -188,6 +188,32 @@ doc.add_paragraph("由式 [cite:eq_mass] 可知……")
 
 引用的文字会自动匹配格式（"1-1"、"图 1-1"、"式(1-1)"），并附带指向对应图表/公式的超链接。
 
+### LaTeX 公式与化学式
+
+本项目支持在文本和公式中使用 LaTeX 语法渲染上下标和复杂公式：
+
+```python
+# 简单化学式（用 $...$ 包裹）
+doc.add_paragraph("水的化学式为 $H_{2}O$。")
+doc.add_paragraph("硫酸根离子为 $SO_{4}^{2-}$。")
+doc.add_paragraph("实验测得 $Fe^{2+}$ 浓度为 $10^{-3}$ mol/L。")
+
+# 复杂公式（调用 latex2word 渲染）
+doc.add_equation(
+    r"\frac{\partial p}{\partial x} = 6\mu\frac{\partial(\rho u)}{\partial x}",
+    label="2-1", ref="eq_reynolds"
+)
+```
+
+**语法规则：**
+- `$H_2O$` → H₂O（单个字符下标）
+- `$H_{2}O$` → H₂O（多字符下标）
+- `$Fe^{2+}$` → Fe²⁺（上标）
+- `$10^{-3}$` → 10⁻³（复杂上标）
+
+**已知问题：**
+- 公式字体由 Word/WPS 内部管理，暂不支持强制设置为 Times New Roman
+
 ### 分文件组织
 
 大型论文可将各章拆分为独立文件，由主控文件组合生成：

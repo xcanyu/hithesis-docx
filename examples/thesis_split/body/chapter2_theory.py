@@ -5,9 +5,13 @@ def build(doc):
         doc.add_section("气体润滑基本方程")
         doc.add_paragraph("气体润滑的基本方程是修正的雷诺方程[ref:Gross1962]。对于可压缩气体润滑，稳态下的雷诺方程可以表示为：")
 
+        # 公式：支持完整 LaTeX 公式语法
         doc.add_equation(r"\frac{\partial}{\partial x}\left(\frac{\rho h^3}{12\mu}\frac{\partial p}{\partial x}\right) + \frac{\partial}{\partial y}\left(\frac{\rho h^3}{12\mu}\frac{\partial p}{\partial y}\right) = 6\mu\frac{\partial(\rho u)}{\partial x} + 6\mu\frac{\partial(\rho v)}{\partial y}", label="2-1", ref="eq_reynolds")
 
         doc.add_paragraph("其中，p为气体压力，h为气膜厚度，μ为气体动力粘度，ρ为气体密度[ref:Wang2010]。由式 [cite:eq_reynolds] 可知，...")
+
+        doc.add_section("化学式与浓度表示")
+        doc.add_paragraph("实验中使用的硫酸铜溶液含有 $Cu^{2+}$ 和 $SO_{4}^{2-}$ 离子，浓度为 $10^{-3}$ mol/L。水的化学式为 $H_{2}O$。")
 
         doc.add_section("边界条件")
         doc.add_paragraph("气膜边界条件包括供气孔处的压力边界条件和气膜出口处的压力边界条件[ref:Zhang2015]。")

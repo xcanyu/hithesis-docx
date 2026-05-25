@@ -98,7 +98,7 @@ Based on the theoretical analysis, an experimental prototype is designed and fab
             ("W", "承载力，N"),
             ("K", "刚度，N/μm"),
             ("μ", "气体动力粘度，Pa·s"),
-            ("ρ", "气体密度，kg/m³"),
+            ("ρ", "气体密度，kg/m$^3$"),
         ],
         add_to_toc=True,
         title="表1　主要物理量符号及说明"
