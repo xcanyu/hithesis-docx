@@ -21,21 +21,21 @@ PAGE = {
 
 # 字体定义
 FONTS = {
-    "cover_title": ("黑体", "42bp"),      # 封面大标题
+    "cover_title": ("宋体", "24bp", True), # 封面第一行（小一）
     "cover_info": ("宋体", "26bp"),       # 封面信息
     "cover_label": ("黑体", "26bp"),      # 封面标签(学校名称等)
     "normal": ("宋体", "12bp"),           # 正文
     "bold": ("宋体", "12bp", True),      # 粗体正文
     "chapter": ("黑体", "18bp"),          # 章标题 一级
     "section": ("黑体", "15bp"),          # 节标题 二级
-    "subsection": ("宋体", "12bp", True), # 小节标题 三级
+    "subsection": ("黑体", "14bp", True), # 小节标题 三级
     "figure_caption": ("宋体", "10.5bp"), # 图题
     "table_caption": ("宋体", "10.5bp"),  # 表题
     "abstract_title": ("黑体", "18bp"),   # 摘要标题
     "abstract": ("宋体", "12bp"),         # 摘要正文
     "toc_title": ("黑体", "18bp"),        # 目录标题
-    "header": ("宋体", "10.5bp"),         # 页眉
-    "footer": ("宋体", "10.5bp"),         # 页脚
+    "header": ("宋体", "9bp"),            # 页眉 小五
+    "footer": ("Times New Roman", "9bp"), # 页脚 小五
     "footnote": ("宋体", "9bp"),          # 脚注
     "reference": ("宋体", "10.5bp"),     # 参考文献
 }

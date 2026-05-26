@@ -137,7 +137,7 @@ def _insert_toc_blank_line(tree, toc_blank_line):
     body_elem = last_toc1_before_chapter.getparent()
     actual_idx = list(body_elem).index(last_toc1_before_chapter)
     body_elem.insert(actual_idx + 1, blank_para)
-    print('已在目录正文开始处（第一章前）插入空白行')
+    # print('已在目录正文开始处（第一章前）插入空白行')
 
 
 def _fix_bachelor_cover2(tree):
@@ -245,7 +245,7 @@ def fix_toc_fonts(filename, thesis_type=None, toc_blank_line=False):
         _fix_paragraph_runs(para, config, runs_in_para)
         modified_count += len(runs_in_para)
 
-    print(f'修改了 {modified_count} 个 run 的字体')
+    # print(f'修改了 {modified_count} 个 run 的字体')
 
     _insert_toc_blank_line(tree, toc_blank_line)
 

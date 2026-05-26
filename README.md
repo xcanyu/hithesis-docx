@@ -5,7 +5,7 @@
 
 用 Python 代码生成哈尔滨工业大学学位论文 Word 文档（.docx）。
 
-> **建议：正式学位论文写作请使用 [hithesis](https://github.com/hithesis/hithesis) LaTeX 模板编译。** 本项目适用于对格式要求不严的 `.docx` 文档生成场景，如草稿、非正式提交、格式审查前的初稿等。
+> **建议：正式学位论文写作请使用 [hithesis](https://github.com/hithesis/hithesis) LaTeX 模板编译。** 本项目适用于对格式要求不严的 `.docx` 文档生成场景，如草稿、非正式提交、课程报告等。
 
 ---
 
@@ -15,19 +15,25 @@
 
 > **重要声明**
 >
-> 本项目格式参考 [hithesis/hithesis](https://github.com/hithesis/hithesis)（哈工大 LaTeX 学位论文模板），在此基础上做了**高仿**，**并非严格符合**《哈尔滨工业大学学位论文撰写规范》。因个人精力有限，目前仅实现了**本科、本部（哈尔滨）**的论文模板，硕博及其他校区未做，仅预留了 `type` 和 `campus` 参数空间。**不建议用于正式学位论文提交**，仅供学习交流。欢迎有兴趣的朋友自行扩展。
+> 本项目格式参考 [hithesis/hithesis](https://github.com/hithesis/hithesis)（哈工大 LaTeX 学位论文模板），在此基础上做了**高仿**，**并非严格符合**《哈尔滨工业大学学位论文撰写规范》。目前仅实现了**本科**，硕博（master/doctor）未做。深圳/威海校区未做，仅预留了 `campus` 参数空间。**不建议用于正式学位论文提交**，仅供学习交流。
 
 ## 特性
 
 - **参考规范**：格式参考 [hithesis](https://github.com/hithesis/hithesis) LaTeX 模板——页面边距、字体字号、行距缩进、三线表、双线页眉
 - **代码驱动**：用 Python 描述文档结构，版本可控、可复用
-- **学位类型**：当前仅实现本科/本部，硕博及其他校区预留参数空间
+- **学位类型**：本科（bachelor），校区仅实现本部（harbin）
 
 ## 安装
 
+建议在虚拟环境中安装（避免污染全局 Python）：
+
 ```bash
+python -m venv .venv          # 创建虚拟环境
+.venv\Scripts\activate        # Windows 激活
 pip install -r requirements.txt
 ```
+
+Linux/macOS 激活用 `source .venv/bin/activate`。
 
 > **Windows 用户**：编译阶段会自动调用 Word COM 接口更新目录域，无需额外配置。macOS / Linux 用户需手动更新目录（打开文档后 `Ctrl+A` → `F9`）。
 
@@ -36,7 +42,7 @@ pip install -r requirements.txt
 ```python
 from hitthesis import Thesis
 
-doc = Thesis(type="bachelor", campus="harbin", header_text=False)  # False=无页眉；省略=默认"哈尔滨工业大学"
+doc = Thesis(type="bachelor", campus="harbin")  # type: bachelor|master|doctor, campus: harbin
 doc.set_info(
     title="局部多孔质气体静压轴承关键技术的研究",
     author="于冬梅",
@@ -81,8 +87,8 @@ doc.compile("thesis.docx")
 ### 论文信息
 
 ```python
-doc = Thesis(type="bachelor", campus="harbin", header_text=False)
-# type: 当前仅实现 "bachelor"（预留 "master"|"doctor"）
+doc = Thesis(type="bachelor", campus="harbin")
+# type: "bachelor"|"master"|"doctor"
 # campus: 当前仅实现 "harbin"（预留 "shenzhen"|"weihai"）
 # header_text: False|None = 无页眉, "文字" = 自定义, 省略 = "哈尔滨工业大学"
 
@@ -108,11 +114,13 @@ doc.set_info(
 | `doc.add_abstract_en(text, keywords)` | 英文摘要，关键词用 `, ` 分隔 |
 | `doc.add_denotation(items)` | 物理量名称及符号表（可选） |
 | `doc.add_toc(blank_line_before=False)` | 目录 |
-| `doc.add_conclusion(title, content)` | 结论 |
-| `doc.add_acknowledgements(title, content)` | 致谢 |
+| `doc.add_conclusion(title, content, auto_space=True)` | 结论 |
+| `doc.add_acknowledgements(title, content, auto_space=True)` | 致谢 |
 | `doc.add_references(bib)` | 参考文献（支持 `ReferenceDB` 或字符串列表） |
-| `doc.add_authorization()` | 授权声明页（本科生） |
-| `doc.include(module_path)` | 导入外部章节模块（分文件模式） |
+| `doc.add_authorization()` | 授权声明页（根据 type 自动选择本科/硕博版本） |
+| `doc.add_publications(sections)` | 发表文章页（硕博），自动编号、悬挂缩进 |
+| `doc.add_resume(title, content, auto_space=True)` | 个人简历（博士） |
+| `doc.include(module_path)` | 导入外部模块（支持 `front.xxx` / `body.xxx` / `back.xxx`） |
 | `doc.compile(filename)` | 编译输出 docx |
 
 ### 章节
@@ -216,14 +224,28 @@ doc.add_equation(
 
 ### 分文件组织
 
-大型论文可将各章拆分为独立文件，由主控文件组合生成：
+大型论文可将内容拆分为 `front/`、`body/`、`back/`，由主控文件组合生成，结构与 LaTeX 一致：
 
 ```python
-# thesis_main.py —— 主控文件
+# thesis_main.py —— 主控文件（只编排结构）
+doc.include("front.cover")
+doc.start_roman_section()
+doc.include("front.abstract_cn")
+doc.include("front.abstract_en")
+doc.include("front.denotation")
+doc.add_toc()
+
 doc.start_arabic_section()
-doc.include("body.chapter1_intro")
+doc.include("body.chapter1_intro")     # 正文章节
 doc.include("body.chapter2_theory")
-doc.add_conclusion(...)
+
+doc.include("back.conclusion")         # 后文
+doc.include("back.references")
+doc.include("back.appendix")
+doc.include("back.publications")
+doc.include("back.authorization")
+doc.include("back.acknowledgements")
+doc.include("back.resume")
 doc.compile("output/thesis.docx")
 ```
 
@@ -235,17 +257,18 @@ def build(doc):
         doc.add_paragraph("正文内容...")
 ```
 
-`include()` 自动导入模块并调用其 `build(doc)` 函数，章节内部 API 与单文件写法完全一致。
+`include()` 自动导入模块并调用 `build(doc)` 函数，内部 API 与单文件写法完全一致。
+前后文均可独立为文件，主控文件只负责顺序编排。
 
 详见 `examples/thesis_split/`。
 
 ## 论文类型
 
-| 类型 | `type` | 状态 | 封面数 | cover2 | 授权声明 |
-|------|--------|:----:|:------:|:------:|:--------:|
-| 本科毕业设计 | `bachelor` | **已实现** | 2 | 包含 | 包含 |
-| 硕士学位论文 | `master` | 预留 | 1 | - | - |
-| 博士学位论文 | `doctor` | 预留 | 1 | - | - |
+| 类型 | `type` | 状态 | 封面数 | 授权声明 | 发表文章 | 简历 |
+|------|--------|:----:|:------:|:--------:|:--------:|:----:|
+| 本科毕业设计 | `bachelor` | ✅ 已实现 | 2 | 本科版 | - | - |
+| 硕士学位论文 | `master` | ❌ 预留 | - | - | - | - |
+| 博士学位论文 | `doctor` | ❌ 预留 | - | - | - | - |
 
 校区：`harbin`（哈尔滨，已实现）、`shenzhen`（深圳，预留）、`weihai`（威海，预留）。
 
@@ -254,6 +277,7 @@ def build(doc):
 以下为当前实现的格式（参考 [hithesis](https://github.com/hithesis/hithesis) LaTeX 模板，部分调整）：
 
 - **页面**：A4 (210×297mm)，版芯 150×236mm，上边距 38mm，左右边距 30mm，下边距 30mm
+- **封面**：本科双封面（含学生信息表格），硕博暂用本科封面
 - **封面标题**：黑体二号不加粗，居中
 - **章标题**：黑体 18pt 加粗，居中，段前 24pt，段后 23pt
 - **一级小节**：黑体 15pt 加粗，左对齐
@@ -271,19 +295,23 @@ def build(doc):
 hithesis-docx/
 ├── hitthesis/                  # 核心库
 │   ├── __init__.py             # 公开 API
-│   ├── config.py               # 格式常量（页面、字体、行距等）
-│   ├── document.py             # Thesis 主类（文档编排）
-│   ├── ooxml_utils.py          # OOXML 原子操作（字体、边框、书签等）
-│   ├── cover.py                # 封面与本科生第二封面
-│   ├── authorization.py        # 授权声明页
-│   ├── compile.py              # 编译流水线（保存 → Word COM → 后处理）
-│   ├── toc_postproc.py         # TOC 字体修复与后处理
-│   └── reference_db.py         # BibTeX 文献数据库与 GB/T 7714 格式化
+│   ├── config.py               # 格式常量
+│   ├── document.py             # Thesis 主类
+│   ├── ooxml_utils.py          # OOXML 原子操作
+│   ├── cover.py                # 封面
+│   ├── authorization.py        # 授权声明页（本科/硕博双版本）
+│   ├── compile.py              # 编译流水线
+│   ├── toc_postproc.py         # TOC 字体修复
+│   ├── footnote.py             # 脚注生成
+│   ├── latex_render.py         # LaTeX 公式渲染
+│   └── reference_db.py         # BibTeX 文献数据库
 ├── examples/
 │   ├── thesis_example.py       # 单文件完整示例
 │   └── thesis_split/           # 分文件组织示例
 │       ├── thesis_main.py      #   主控文件
-│       └── body/               #   章节文件
+│       ├── front/              #   前文（封面、摘要、符号表）
+│       ├── body/               #   正文章节
+│       └── back/               #   后文（结论、参考文献、附录等）
 ├── output/                     # 生成的文档输出
 ├── requirements.txt
 ├── README.md
@@ -293,24 +321,32 @@ hithesis-docx/
 ## 运行示例
 
 ```bash
+# 单文件示例
 python examples/thesis_example.py
+
+# 分文件示例（front/body/back 架构）
+python examples/thesis_split/thesis_main.py
 ```
 
-生成的文档位于 `output/thesis_example.docx`。
+生成的文档分别位于 `output/thesis_example.docx` 和 `examples/thesis_split/output/thesis_split.docx`。
 
 ## 已知问题
 
 - **空白页 Bug**：TOC 域展开后，目录与第一章之间可能出现多余空白页。这是 Word COM 域更新的固有问题，需手动删除。
-- **图片**：单图可用，子图、并排图未支持。
-- **公式**：仅渲染公式编号，复杂 LaTeX 公式建议先渲染为图片再插入。
-- **三级小节段后间距**：标准约 8.5pt，当前为 6pt。
-- **格式偏差**：部分间距、字体与标准不完全一致。
+- **子图**：单图可用，并排图、子图编号未支持。
+- **公式字体**：OMML 公式字体由 Word 内部管理，暂不支持强制设置为 Times New Roman。
+- **WPS 兼容性**：字间距（`w:spacing`）在 Word 和 WPS 下渲染效果有差异，以 Word 为准。
+- **格式偏差**：部分间距、字体与标准不完全一致（详见 dev-notes.md）。
 
 ## 未实现
 
-- 硕博封面及论文结构
+- 硕博封面（暂时用本科封面替代）
 - 深圳、威海校区适配
-- 子图 / 公式本体渲染
+- 中英双语图题/表题（博士要求）
+- 子图
+- 定理环境（definition/theorem/lemma/proof）
+- 长表格（续表，跨页重复表头）
+- 开题/中期报告
 - 英文目录
 - 全日制/非全日制区分
 

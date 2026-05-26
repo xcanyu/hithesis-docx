@@ -459,13 +459,14 @@ class Thesis:
         self.doc.add_page_break()
 
     def add_authorization(self, add_to_toc=True):
-        """添加授权声明（本科毕业论文格式）"""
-        _add_authorization(self.doc, self.info, add_to_toc)
-    def add_conclusion(self, title='结论', content=None, add_to_toc=True):
+        """添加授权声明"""
+        _add_authorization(self.doc, self.info, add_to_toc, thesis_type=self.type)
+    def add_conclusion(self, title='结论', content=None, add_to_toc=True, auto_space=True):
         """添加结论
         结论作为论文正文的组成部分，单独排写，不加章标题序号。
+        auto_space: 两汉字标题自动加全角空格
         """
-        para, formatted_title = self._create_heading_para(title)
+        para, formatted_title = self._create_heading_para(title, auto_space=auto_space)
         if content:
             for text in content:
                 para2 = self.doc.add_paragraph()
@@ -473,7 +474,7 @@ class Thesis:
                 para2.paragraph_format.line_spacing = Pt(20.5)
                 para2.paragraph_format.space_before = Pt(0)
                 para2.paragraph_format.space_after = Pt(0)
-                set_first_line_indent(para2, 437)
+                set_first_line_indent(para2, 480)
                 self._add_text_with_superscripts(para2, text)
 
     def _add_authorization_old_garbage(self):  # deleted, keeping for reference
@@ -642,9 +643,11 @@ class Thesis:
             hidden_run.font.size = Pt(1)
             hidden_run.font.color.rgb = RGBColor(255, 255, 255)
 
-    def add_acknowledgements(self, title='致谢', content=None, add_to_toc=True):
-        """添加致谢"""
-        para, formatted_title = self._create_heading_para(title)
+    def add_acknowledgements(self, title='致谢', content=None, add_to_toc=True, auto_space=True):
+        """添加致谢
+        auto_space: 两汉字标题自动加全角空格
+        """
+        para, formatted_title = self._create_heading_para(title, auto_space=auto_space)
         if content:
             for text in content:
                 para2 = self.doc.add_paragraph()
@@ -652,7 +655,56 @@ class Thesis:
                 para2.paragraph_format.line_spacing = Pt(20.5)
                 para2.paragraph_format.space_before = Pt(0)
                 para2.paragraph_format.space_after = Pt(0)
-                set_first_line_indent(para2, 437)
+                set_first_line_indent(para2, 480)
+                self._add_text_with_superscripts(para2, text)
+
+    def add_publications(self, title='攻读博士学位期间发表的论文及其他成果', sections=None, add_to_toc=True, auto_space=True):
+        """添加发表文章页
+
+        Args:
+            title: 页面标题
+            sections: [(副标题, [条目文字, ...]), ...]
+            add_to_toc: 是否加入目录
+            auto_space: 两汉字标题自动加全角空格
+        """
+        para, formatted_title = self._create_heading_para(title, auto_space=auto_space)
+        if sections:
+            for sub_title, items in sections:
+                sub_para = self.doc.add_paragraph()
+                sub_para.paragraph_format.line_spacing = Pt(20.5)
+                sub_para.paragraph_format.space_before = Pt(12)
+                sub_para.paragraph_format.space_after = Pt(6)
+                run = sub_para.add_run(sub_title)
+                set_font(run, "宋体", 12, True)
+
+                for idx, item in enumerate(items):
+                    item_para = self.doc.add_paragraph()
+                    item_para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                    item_para.paragraph_format.line_spacing = Pt(20.5)
+                    item_para.paragraph_format.space_before = Pt(0)
+                    item_para.paragraph_format.space_after = Pt(0)
+                    set_hanging_indent(item_para, 450)
+                    run_idx = item_para.add_run(f"[{idx + 1}] ")
+                    set_font(run_idx, "Times New Roman", 12)
+                    self._add_text_with_superscripts(item_para, item)
+
+    def add_resume(self, title='个人简历', content=None, add_to_toc=True, auto_space=True):
+        """添加个人简历
+
+        Args:
+            title: 页面标题
+            content: 正文段落字符串列表
+            add_to_toc: 是否加入目录
+            auto_space: 两汉字标题自动加全角空格
+        """
+        para, formatted_title = self._create_heading_para(title, auto_space=auto_space)
+        if content:
+            for text in content:
+                para2 = self.doc.add_paragraph()
+                para2.paragraph_format.line_spacing = Pt(20.5)
+                para2.paragraph_format.space_before = Pt(0)
+                para2.paragraph_format.space_after = Pt(0)
+                set_first_line_indent(para2, 480)
                 self._add_text_with_superscripts(para2, text)
 
     def add_references(self, bib=None, title='参考文献', add_to_toc=True, references=None):
@@ -766,28 +818,28 @@ class Thesis:
         compile_document(self.doc, filename, thesis_type=self.type,
                          toc_blank_line=self._toc_blank_line,
                          footnotes=self._footnotes if self._footnotes else None)
-    def _format_title(self, title, with_chapter_prefix=None):
+    def _format_title(self, title, with_chapter_prefix=None, auto_space=True):
         """格式化一级标题：
-        - 检测两汉字则在中间插入全角空格（结　论）
+        - 检测两汉字则在中间插入全角空格（结　论），auto_space 可关闭
         - 可选添加"第X章　"前缀
         """
         import re
-        # 两汉字：在中间插一个全角空格
-        if len(title) == 2 and re.match(r'^[一-龥]+$', title):
+        if auto_space and len(title) == 2 and re.match(r'^[一-龥]+$', title):
             title = f"{title[0]}　{title[1]}"
         if with_chapter_prefix is not None:
             title = f"第{with_chapter_prefix}章　{title}"
         return title
 
-    def _create_heading_para(self, title, with_chapter_prefix=None):
+    def _create_heading_para(self, title, with_chapter_prefix=None, auto_space=True):
         """创建一级标题段落（复用逻辑）
         with_chapter_prefix: 指定章号，如"1"，自动生成"第1章　标题"
+        auto_space: 两汉字标题自动加全角空格
         返回: (段落, 格式化后的标题文字)
         """
         para = self.doc.add_paragraph()
         add_page_break_before(para)
         apply_heading_style(para)
-        formatted_title = self._format_title(title, with_chapter_prefix)
+        formatted_title = self._format_title(title, with_chapter_prefix, auto_space)
         run = para.add_run(formatted_title)
         set_font(run, '黑体', 18, True)
         set_outline_level(para, 0)
