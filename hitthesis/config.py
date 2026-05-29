@@ -7,16 +7,16 @@ PAGE = {
     # A4纸张: 210mm x 297mm
     "width": 21.0,
     "height": 29.7,
-    # 版芯尺寸 (根据规范)
+    # 版芯尺寸 (根据 LaTeX 模板 hithesisbook.cls:311-317)
     "text_width": 15.0,      # 正文宽度 150mm
     "text_height": 23.6,     # 正文高度 236mm
-    # 页边距
-    "top": 3.8,            # 上边距 38mm
-    "bottom": 3.0,          # 下边距 30mm
+    # 页边距 (严格按照 LaTeX 规范)
+    "top": 3.65,           # 上边距 36.5mm
+    "bottom": 2.88,        # 下边距 28.8mm
     "left": 3.0,            # 左边距 30mm
     "right": 3.0,           # 右边距 30mm
-    "header": 3.05,          # 页眉上边距 3.05cm
-    "footer": 2.3,          # 页脚下边距 2.3cm
+    "header": 0.5,          # 页眉上边距 5mm (LaTeX: head=5true mm)
+    "footer": 0.52,         # 页脚下边距 5.2mm (LaTeX: foot=5.2true mm)
 }
 
 # 字体定义
