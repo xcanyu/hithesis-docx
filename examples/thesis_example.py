@@ -146,6 +146,12 @@ Based on the theoretical analysis, an experimental prototype is designed and fab
             "指出多孔质材料能够显著提高轴承的承载能力[ref:Blaschke2005]。"
         )
 
+        doc.add_subsubsection("多孔质轴承研究")
+        doc.add_paragraph(
+            "多孔质气体静压轴承利用材料的孔隙结构实现自补偿，"
+            "具有承载能力高、稳定性好等优点。"
+        )
+
         doc.add_subsection("国内研究进展")
         doc.add_paragraph(
             "国内学者在气体轴承领域也开展了大量研究工作[ref:Li2018][ref:Chen2019]，"

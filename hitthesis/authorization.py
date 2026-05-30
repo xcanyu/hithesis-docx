@@ -40,7 +40,7 @@ def _add_bachelor(doc, info, add_to_toc):
     jc1.set(qn('w:val'), 'center')
     pPr1.append(jc1)
     spacing1 = OxmlElement('w:spacing')
-    spacing1.set(qn('w:before'), '310')
+    spacing1.set(qn('w:before'), '196')
     spacing1.set(qn('w:after'), '0')
     pPr1.append(spacing1)
     pPr1.append(OxmlElement('w:keepNext'))
@@ -49,25 +49,25 @@ def _add_bachelor(doc, info, add_to_toc):
     sg1.set(qn('w:val'), '0')
     pPr1.append(sg1)
     run1 = para1.add_run('哈尔滨工业大学本科毕业论文（设计）')
-    set_font(run1, '黑体', 22, True)
+    set_font(run1, '黑体', 18, False)
 
     # 第二排：原创性声明和使用权限
     para2 = doc.add_paragraph()
     para2.alignment = WD_ALIGN_PARAGRAPH.CENTER
     para2.paragraph_format.line_spacing = Pt(20.5)
-    para2.paragraph_format.space_before = Pt(6)
+    para2.paragraph_format.space_before = Pt(3)
     para2.paragraph_format.space_after = Pt(12)
     run2 = para2.add_run('原创性声明和使用权限')
-    set_font(run2, '黑体', 22, True)
+    set_font(run2, '黑体', 18, False)
 
     # 第三排：本科毕业论文（设计）原创性声明
     para3_title = doc.add_paragraph()
     para3_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     para3_title.paragraph_format.line_spacing = Pt(20.5)
-    para3_title.paragraph_format.space_before = Pt(21)
-    para3_title.paragraph_format.space_after = Pt(12)
+    para3_title.paragraph_format.space_before = Pt(23)
+    para3_title.paragraph_format.space_after = Pt(14)
     run3t = para3_title.add_run('本科毕业论文（设计）原创性声明')
-    set_font(run3t, '黑体', 15, True)
+    set_font(run3t, '黑体', 15, False)
 
     # 正文内容
     title = info.get("title", "（论文题目）")
@@ -76,6 +76,7 @@ def _add_bachelor(doc, info, add_to_toc):
         f'在哈尔滨工业大学攻读学士学位期间独立进行研究工作所取得的成果，且毕业论文（设计）'
         f'中除已标注引用文献的部分外不包含他人完成或已发表的研究成果。对本毕业论文（设计）'
         f'的研究工作做出重要贡献的个人和集体，均已在文中以明确方式注明。'
+        f'本毕业论文（设计）对使用AI工具的情况进行了明确标注。'
     )
     para3 = doc.add_paragraph()
     para3.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
@@ -84,26 +85,30 @@ def _add_bachelor(doc, info, add_to_toc):
     para3.paragraph_format.space_after = Pt(0)
     set_first_line_indent(para3, 480)
     run3 = para3.add_run(content_text)
-    set_font(run3, '宋体', 12.5)
+    set_font(run3, '宋体', 12)
+    rPr3 = run3._element.get_or_add_rPr()
+    sp3 = OxmlElement('w:spacing')
+    sp3.set(qn('w:val'), '10')
+    rPr3.append(sp3)
 
-    # 签名行
+    # 签名行（原创性声明后）
     para_sign = doc.add_paragraph()
     para_sign.alignment = WD_ALIGN_PARAGRAPH.RIGHT
     para_sign.paragraph_format.line_spacing = Pt(20.5)
-    para_sign.paragraph_format.space_before = Pt(14)
+    para_sign.paragraph_format.space_before = Pt(28)
     add_signature_line(para_sign, '作者签名：', 114)
 
     # 本科毕业论文（设计）使用权限
     para4 = doc.add_paragraph()
     para4.alignment = WD_ALIGN_PARAGRAPH.CENTER
     para4.paragraph_format.line_spacing = Pt(24)
-    para4.paragraph_format.space_before = Pt(56.7)
-    para4.paragraph_format.space_after = Pt(12)
+    para4.paragraph_format.space_before = Pt(49)
+    para4.paragraph_format.space_after = Pt(10)
     sg = OxmlElement('w:snapToGrid')
     sg.set(qn('w:val'), '0')
     para4._element.get_or_add_pPr().append(sg)
     run4 = para4.add_run('本科毕业论文（设计）使用权限')
-    set_font(run4, '黑体', 15, True)
+    set_font(run4, '黑体', 15, False)
 
     # 使用权限正文
     para5 = doc.add_paragraph()
@@ -116,7 +121,7 @@ def _add_bachelor(doc, info, add_to_toc):
         '本科毕业论文（设计）是本科生在哈尔滨工业大学攻读学士学位期间完成的成果，'
         '知识产权归属哈尔滨工业大学。本科毕业论文（设计）的使用权限如下：'
     )
-    set_font(run5, '宋体', 12.5)
+    set_font(run5, '宋体', 12)
 
     line_data = [
         ('（1）学校可以采用影印、缩印或其他复制手段保存本科生上交的毕业论文', WD_ALIGN_PARAGRAPH.LEFT, 6, True),
@@ -164,13 +169,17 @@ def _add_bachelor(doc, info, add_to_toc):
     para8.paragraph_format.space_after = Pt(0)
     set_first_line_indent(para8, 480)
     run8 = para8.add_run('本人知悉本科毕业论文（设计）的使用权限，并将遵守有关规定。')
-    set_font(run8, '宋体', 12.5)
+    set_font(run8, '宋体', 12)
+    rPr8 = run8._element.get_or_add_rPr()
+    sp8 = OxmlElement('w:spacing')
+    sp8.set(qn('w:val'), '10')
+    rPr8.append(sp8)
 
-    # 作者签名
+    # 作者签名（使用权限后）
     para_auth_sign = doc.add_paragraph()
     para_auth_sign.alignment = WD_ALIGN_PARAGRAPH.RIGHT
     para_auth_sign.paragraph_format.line_spacing = Pt(20.5)
-    para_auth_sign.paragraph_format.space_before = Pt(23)
+    para_auth_sign.paragraph_format.space_before = Pt(34)
     para_auth_sign.paragraph_format.space_after = Pt(0)
     add_signature_line(para_auth_sign, '作者签名：', 114)
 
@@ -178,7 +187,7 @@ def _add_bachelor(doc, info, add_to_toc):
     para_sup_sign = doc.add_paragraph()
     para_sup_sign.alignment = WD_ALIGN_PARAGRAPH.RIGHT
     para_sup_sign.paragraph_format.line_spacing = Pt(20.5)
-    para_sup_sign.paragraph_format.space_before = Pt(17)
+    para_sup_sign.paragraph_format.space_before = Pt(16)
     para_sup_sign.paragraph_format.space_after = Pt(0)
     add_signature_line(para_sup_sign, '导师签名：', 114)
 
@@ -260,7 +269,7 @@ def _add_graduate(doc, info, add_to_toc):
     para4.alignment = WD_ALIGN_PARAGRAPH.CENTER
     para4.paragraph_format.line_spacing = Pt(24)
     para4.paragraph_format.space_before = Pt(56.7)
-    para4.paragraph_format.space_after = Pt(12)
+    para4.paragraph_format.space_after = Pt(10)
     sg = OxmlElement('w:snapToGrid')
     sg.set(qn('w:val'), '0')
     para4._element.get_or_add_pPr().append(sg)

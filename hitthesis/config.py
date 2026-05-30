@@ -7,16 +7,16 @@ PAGE = {
     # A4纸张: 210mm x 297mm
     "width": 21.0,
     "height": 29.7,
-    # 版芯尺寸 (根据 LaTeX 模板 hithesisbook.cls:311-317)
+    # 版芯尺寸
     "text_width": 15.0,      # 正文宽度 150mm
     "text_height": 23.6,     # 正文高度 236mm
-    # 页边距 (严格按照 LaTeX 规范)
-    "top": 3.65,           # 上边距 36.5mm
-    "bottom": 2.88,        # 下边距 28.8mm
+    # 页边距（对齐官方Word模板）
+    "top": 3.80,           # 上边距 38mm
+    "bottom": 3.00,        # 下边距 30mm
     "left": 3.0,            # 左边距 30mm
     "right": 3.0,           # 右边距 30mm
-    "header": 0.5,          # 页眉上边距 5mm (LaTeX: head=5true mm)
-    "footer": 0.52,         # 页脚下边距 5.2mm (LaTeX: foot=5.2true mm)
+    "header": 3.00,         # 页眉距页面顶部 30mm
+    "footer": 2.30,         # 页脚距页面底部 23mm
 }
 
 # 字体定义
@@ -141,15 +141,15 @@ UNIVERSITY_NAME = "哈尔滨工业大学"
 
 # 标题段落间距（twips，1pt = 20twips）
 SPACING = {
-    "heading_before": 480,      # 章标题段前（twips）= 24pt
-    "heading_after": 460,       # 章标题段后（twips）= 23pt（标准 28.75bp）
-    "heading_line": 288,        # 章标题行距（twips）= 1.2倍
-    "section_before": 18,        # 一级小节段前（pt）
-    "section_after": 6,          # 一级小节段后（pt）
-    "subsection_before": 12,    # 二级小节段前（pt）
-    "subsection_after": 6,      # 二级小节段后（pt）
-    "subsubsection_before": 6,  # 三级小节段前（pt）
-    "subsubsection_after": 6,   # 三级小节段后（pt）
+    "heading_before": 454,      # 章标题段前（twips）= 22.7pt（双线到标题间距1cm）
+    "heading_after": 400,       # 章标题段后（twips）= 20pt（精确匹配官方Word模板1.68cm）
+    "heading_line": 288,        # 章标题行距（twips）= 1.2倍（测试：减小行距看效果）
+    "section_before": 10,       # 一级小节段前（pt）
+    "section_after": 8,         # 一级小节段后（pt）（微调使L2→正文和正文→L2统一为1.04cm）
+    "subsection_before": 7,     # 二级小节段前（pt）（统一正文→L3为0.98cm）
+    "subsection_after": 9,      # 二级小节段后（pt）（官方L3→L4=0.98cm，当前0.77cm，增加6pt）
+    "subsubsection_before": 0,  # 三级小节段前（pt）（官方正文→四级0.66cm，当前0.83cm，需减小）
+    "subsubsection_after": 3,   # 三级小节段后（pt）（官方四级→正文0.98cm，当前0.98cm，已匹配）
     "first_line_indent": 480,    # 首行缩进（twips）= 2字符
     "body_line_spacing": 20.5,  # 正文行距（pt）
     "body_font_size": 12,        # 正文字号（pt）

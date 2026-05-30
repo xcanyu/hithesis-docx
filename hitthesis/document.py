@@ -40,7 +40,12 @@ class Thesis:
         self.doc = Document()
         self.type = type
         self.campus = campus
-        self._header_text = header_text if header_text is not None else UNIVERSITY_NAME
+        if header_text is not None:
+            self._header_text = header_text
+        elif type == "bachelor":
+            self._header_text = "哈尔滨工业大学本科毕业论文（设计）"
+        else:
+            self._header_text = UNIVERSITY_NAME
         self.chapter_number = 0  # 章节计数器
         self.section_counter = [0, 0, 0]  # [一级, 二级, 三级] 计数器
         self.appendix_number = 0  # 附录计数器
@@ -118,12 +123,12 @@ class Thesis:
         para_title.paragraph_format.space_after = Pt(0)
         set_paragraph_border(para_title, 'bottom', sz=18, space=0, color='000000')  # 粗线2.25pt
 
-        # 2. 间距段落（控制粗线与细线间距 0.77pt）
+        # 2. 间距段落（控制粗线与细线间距 0.75pt）
         gap_para = header.add_paragraph()
         gap_para.paragraph_format.space_before = Pt(0)
         gap_para.paragraph_format.space_after = Pt(0)
         gap_para.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
-        gap_para.paragraph_format.line_spacing = Pt(0.77)
+        gap_para.paragraph_format.line_spacing = Pt(0.75)
 
         # 3. 细线段落（细线下边框）
         para_thin = header.add_paragraph()
@@ -322,6 +327,8 @@ class Thesis:
     def add_abstract_cn(self, abstract_text, keywords, add_to_toc=True):
         """添加中文摘要"""
         para_title, formatted_title = self._create_heading_para('摘要')
+        # 节首标题需要额外 space_before 以统一位置
+        para_title.paragraph_format.space_before = Pt(SPACING["heading_before"] / 20 + 10)
 
         paragraphs = abstract_text.split('\n\n')
         for i, text in enumerate(paragraphs):
@@ -353,9 +360,9 @@ class Thesis:
         """添加英文摘要"""
         para_title = self.doc.add_paragraph()
         add_page_break_before(para_title)
-        apply_heading_style(para_title)
+        apply_heading_style(para_title, after_pt=15)  # 官方模板Abstract间距更小
         run = para_title.add_run('Abstract')
-        set_font(run, "Times New Roman", 18, True)
+        set_font(run, "Times New Roman", 18, False)
         set_outline_level(para_title, 0)
 
         paragraphs = abstract_text.split('\n\n')
@@ -400,7 +407,7 @@ class Thesis:
         add_page_break_before(para)
         apply_heading_style(para)
         run = para.add_run('物理量名称及符号表')
-        set_font(run, "黑体", 18, True)
+        set_font(run, "黑体", 18, False)
         set_outline_level(para, 0)
 
         # 表题（宋体小四 14pt，居中）
@@ -438,7 +445,8 @@ class Thesis:
         add_page_break_before(para)
         apply_heading_style(para)
         run = para.add_run("目　录")
-        set_font(run, "黑体", 18, True)
+        set_font(run, "黑体", 18, False)
+        set_outline_level(para, 0)  # 添加 outline level 以出现在导航栏
 
         # TOC 域
         para = self.doc.add_paragraph()
@@ -720,7 +728,7 @@ class Thesis:
         add_page_break_before(para)
         apply_heading_style(para)
         run = para.add_run(title)
-        set_font(run, '黑体', 18, True)
+        set_font(run, '黑体', 18, False)
         set_outline_level(para, 0)
 
         # 兼容旧用法：优先使用 references 参数
@@ -830,18 +838,22 @@ class Thesis:
             title = f"第{with_chapter_prefix}章　{title}"
         return title
 
-    def _create_heading_para(self, title, with_chapter_prefix=None, auto_space=True):
+    def _create_heading_para(self, title, with_chapter_prefix=None, auto_space=True, after_pt=None):
         """创建一级标题段落（复用逻辑）
         with_chapter_prefix: 指定章号，如"1"，自动生成"第1章　标题"
         auto_space: 两汉字标题自动加全角空格
+        after_pt: 自定义段后间距（pt），None则使用默认值
         返回: (段落, 格式化后的标题文字)
         """
         para = self.doc.add_paragraph()
         add_page_break_before(para)
-        apply_heading_style(para)
+        if after_pt is not None:
+            apply_heading_style(para, after_pt=after_pt)
+        else:
+            apply_heading_style(para)
         formatted_title = self._format_title(title, with_chapter_prefix, auto_space)
         run = para.add_run(formatted_title)
-        set_font(run, '黑体', 18, True)
+        set_font(run, '黑体', 18, False)
         set_outline_level(para, 0)
         return para, formatted_title
 
@@ -882,11 +894,11 @@ class Thesis:
         formatted_title = self._format_section_title(title, 1)
         para = self.doc.add_paragraph()
         para.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        para.paragraph_format.line_spacing = Pt(20.5)
+        para.paragraph_format.line_spacing = Pt(22)    # 21bp行距
         para.paragraph_format.space_before = Pt(SPACING["section_before"])
         para.paragraph_format.space_after = Pt(SPACING["section_after"])
         run = para.add_run(formatted_title)
-        set_font(run, "黑体", 15, True)
+        set_font(run, "黑体", 15, False)               # bachelor不加粗
         set_outline_level(para, 1)
         add_heading_properties(para)
         return para
@@ -896,26 +908,25 @@ class Thesis:
         formatted_title = self._format_section_title(title, 2)
         para = self.doc.add_paragraph()
         para.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        para.paragraph_format.line_spacing = Pt(20.5)
+        para.paragraph_format.line_spacing = Pt(19)    # 18bp行距
         para.paragraph_format.space_before = Pt(SPACING["subsection_before"])
-        para.paragraph_format.space_after = Pt(SPACING["section_after"])
+        para.paragraph_format.space_after = Pt(SPACING["subsection_after"])
         run = para.add_run(formatted_title)
-        set_font(run, "黑体", 14, True)
+        set_font(run, "黑体", 14, False)               # bachelor不加粗
         set_outline_level(para, 2)
         add_heading_properties(para)
         return para
 
     def add_subsubsection(self, title):
-        """三级小节标题（subsubsection）"""
+        """三级小节标题（subsubsection）——不加入目录"""
         formatted_title = self._format_section_title(title, 3)
         para = self.doc.add_paragraph()
         para.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        para.paragraph_format.line_spacing = Pt(20.5)
+        para.paragraph_format.line_spacing = Pt(16)    # 约12bp×1.33行距
         para.paragraph_format.space_before = Pt(SPACING["subsubsection_before"])
-        para.paragraph_format.space_after = Pt(SPACING["section_after"])
+        para.paragraph_format.space_after = Pt(SPACING["subsubsection_after"])
         run = para.add_run(formatted_title)
-        set_font(run, "黑体", 14, True)
-        set_outline_level(para, 3)
+        set_font(run, "黑体", 12, False)               # normalsize 12bp，不加粗
         add_heading_properties(para)
         return para
 
@@ -1100,14 +1111,14 @@ class Thesis:
         pgSz.set(qn('w:h'), '16838')  # 297mm
         sectPr.append(pgSz)
 
-        # 页边距
+        # 页边距（对齐官方Word模板）
         pgMar = OxmlElement('w:pgMar')
-        pgMar.set(qn('w:top'), '1807')    # ~3.19cm
-        pgMar.set(qn('w:right'), '1418')   # ~2.5cm
-        pgMar.set(qn('w:bottom'), '1626') # ~2.87cm
-        pgMar.set(qn('w:left'), '1701')    # ~3.0cm
-        pgMar.set(qn('w:header'), '1701')   # 3cm
-        pgMar.set(qn('w:footer'), '1304')   # 2.3cm
+        pgMar.set(qn('w:top'), '2155')     # 38mm
+        pgMar.set(qn('w:right'), '1701')   # 30mm
+        pgMar.set(qn('w:bottom'), '1701')  # 30mm
+        pgMar.set(qn('w:left'), '1701')    # 30mm
+        pgMar.set(qn('w:header'), '1701')  # 30mm
+        pgMar.set(qn('w:footer'), '1304')  # 23mm
         pgMar.set(qn('w:gutter'), '0')
         sectPr.append(pgMar)
 
@@ -1342,7 +1353,10 @@ class ChapterContext:
         if len(title) == 2 and re.match(r'^[一-龥]+$', title):
             title = f"{title[0]}　{title[1]}"
         full_title = f"第{self.number}章　{title}" if self.number else title
-        make_heading_para(self.doc, full_title)
+        para = make_heading_para(self.doc, full_title)
+        # 第一章需要额外 space_before 以统一位置（与摘要等节首标题对齐）
+        if self.number and int(self.number) == 1:
+            para.paragraph_format.space_before = Pt(SPACING["heading_before"] / 20 + 10)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):

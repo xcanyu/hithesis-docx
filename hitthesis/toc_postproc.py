@@ -14,9 +14,9 @@ from lxml import etree
 W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
 
 TOC_CONFIGS = {
-    'TOC1': {'font': '黑体', 'bold': True},
-    'TOC 1': {'font': '黑体', 'bold': True},
-    'TOC 1 Hyperlink': {'font': '黑体', 'bold': True},
+    'TOC1': {'font': '黑体', 'bold': False},
+    'TOC 1': {'font': '黑体', 'bold': False},
+    'TOC 1 Hyperlink': {'font': '黑体', 'bold': False},
     'TOC2': {'font': '宋体', 'bold': False},
     'TOC 2': {'font': '宋体', 'bold': False},
     'TOC 2 Hyperlink': {'font': '宋体', 'bold': False},
