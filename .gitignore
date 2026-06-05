@@ -10,8 +10,7 @@ build/
 venv/
 
 # Word documents (generated output)
-output/*.docx
-examples/thesis_split/output/*.docx
+output/
 
 # Backup files
 *_raw.docx
@@ -25,3 +24,11 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Project docs (local only)
+dev-notes.md
+hithesis-format-spec.md
+
+# Temporary/cache
+.spec-workflow/
+docs/superpowers/
