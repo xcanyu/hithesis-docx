@@ -327,8 +327,6 @@ class Thesis:
     def add_abstract_cn(self, abstract_text, keywords, add_to_toc=True):
         """添加中文摘要"""
         para_title, formatted_title = self._create_heading_para('摘要')
-        # 节首标题需要额外 space_before 以统一位置
-        para_title.paragraph_format.space_before = Pt(SPACING["heading_before"] / 20 + 10)
 
         paragraphs = abstract_text.split('\n\n')
         for i, text in enumerate(paragraphs):
@@ -1354,9 +1352,6 @@ class ChapterContext:
             title = f"{title[0]}　{title[1]}"
         full_title = f"第{self.number}章　{title}" if self.number else title
         para = make_heading_para(self.doc, full_title)
-        # 第一章需要额外 space_before 以统一位置（与摘要等节首标题对齐）
-        if self.number and int(self.number) == 1:
-            para.paragraph_format.space_before = Pt(SPACING["heading_before"] / 20 + 10)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):

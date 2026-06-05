@@ -170,9 +170,13 @@ def add_page_break_before(para):
     pPr.append(OxmlElement('w:pageBreakBefore'))
 
 
-def apply_heading_style(para, after_pt=20):
-    """一级标题样式：居中、段前28.35pt、段后20pt、1.2倍行距、与下段同页、不对齐到网格"""
+def apply_heading_style(para, after_pt=None):
+    """一级标题样式：居中、段后18pt、1.2倍行距、与下段同页、不对齐到网格
+    after_pt: 段后间距，默认取 SPACING["heading_after"]
+    """
     from .config import SPACING
+    if after_pt is None:
+        after_pt = int(SPACING["heading_after"] / 20)
     pPr = para._element.find(qn('w:pPr'))
     if pPr is None:
         pPr = OxmlElement('w:pPr')

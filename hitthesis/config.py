@@ -141,15 +141,15 @@ UNIVERSITY_NAME = "哈尔滨工业大学"
 
 # 标题段落间距（twips，1pt = 20twips）
 SPACING = {
-    "heading_before": 454,      # 章标题段前（twips）= 22.7pt（双线到标题间距1cm）
-    "heading_after": 400,       # 章标题段后（twips）= 20pt（精确匹配官方Word模板1.68cm）
-    "heading_line": 288,        # 章标题行距（twips）= 1.2倍（测试：减小行距看效果）
-    "section_before": 10,       # 一级小节段前（pt）
-    "section_after": 8,         # 一级小节段后（pt）（微调使L2→正文和正文→L2统一为1.04cm）
-    "subsection_before": 7,     # 二级小节段前（pt）（统一正文→L3为0.98cm）
-    "subsection_after": 9,      # 二级小节段后（pt）（官方L3→L4=0.98cm，当前0.77cm，增加6pt）
-    "subsubsection_before": 0,  # 三级小节段前（pt）（官方正文→四级0.66cm，当前0.83cm，需减小）
-    "subsubsection_after": 3,   # 三级小节段后（pt）（官方四级→正文0.98cm，当前0.98cm，已匹配）
+    "heading_before": 400,      # 章标题段前（twips）= 20pt（一级标题距页顶4.50cm）
+    "heading_after": 340,       # 章标题段后（twips）= 17pt（对齐本科模板 L1→正文 1.59cm）
+    "heading_line": 288,        # 章标题行距（twips）= 1.2倍
+    "section_before": 10,       # 一级小节段前（pt）（对齐本科模板 正文→L2 1.02cm）
+    "section_after": 12,        # 一级小节段后（pt）（对齐本科模板 L2→正文 1.19cm）
+    "subsection_before": 8,     # 二级小节段前（pt）（对齐本科模板 正文→L3 1.02cm）
+    "subsection_after": 12,     # 二级小节段后（pt）（对齐本科模板 L3→正文 1.13cm）
+    "subsubsection_before": 0,  # 三级小节段前（pt）
+    "subsubsection_after": 3,   # 三级小节段后（pt）
     "first_line_indent": 480,    # 首行缩进（twips）= 2字符
     "body_line_spacing": 20.5,  # 正文行距（pt）
     "body_font_size": 12,        # 正文字号（pt）

@@ -1,14 +1,16 @@
 # 开发笔记
 
-> 最后更新：2026-05-30
+> 最后更新：2026-06-06
 >
 > 本项目格式参考 [hithesis/hithesis](https://github.com/hithesis/hithesis)（哈工大 LaTeX 学位论文模板），
-> 为高仿版，并非严格符合规范。目前仅实现本科/本部，不建议用于正式学位论文提交。
+> 为高仿版，并非严格符合规范。目前仅实现本科/本部。
+>
+> **格式基准已切换为学校 2025 年官方本科 Word 模板，不再以 LaTeX PDF 或 2021 年研究生模板为准。**
 
 ## 当前状态
 
-- 已实现：**本科（bachelor）** + **硕士/博士（master/doctor）部分功能**，校区：**本部（harbin）**
-- 封面：本科双封面完善，硕博暂用本科封面
+- 已实现：**本科（bachelor）**，校区：**本部（harbin）**
+- **封面：当前版本未解决**（第一页和第二页均有问题），上一版 `9647fa2` 的 cover.py 虽不精确但仍可用，`git checkout 9647fa2 -- hitthesis/cover.py` 可恢复
 - 授权声明：本科和硕博两个版本，通过 `thesis_type` 自动切换
 - 预留空间：深圳/威海（`campus="shenzhen"|"weihai"`），页眉自定义（`header_text`）
 - 核心库模块：`document.py` / `cover.py` / `authorization.py` / `compile.py` / `toc_postproc.py` / `ooxml_utils.py` / `reference_db.py` / `footnote.py` / `latex_render.py`
@@ -38,54 +40,50 @@
 | 硕博授权声明 | 黑体小二不加粗，1.6cm间距，条款行字间距控制 |
 | 标题自动空格 | `auto_space` 参数可关闭两汉字标题自动加全角空格 |
 
-## 间距校准结果（2026-05-30）
+## 间距校准结果（2026-06-06）
 
-通过 VBA 宏实测，以学校官方本科 Word 模板为基准，建立了 Word 特定的间距公式：
+格式基准：学校 **2025 年官方本科 Word 模板**。通过 VBA 宏实测各级标题间距，与模板逐项对齐。
 
-**核心发现：**
-- Word 视觉间距 = space_after + line_spacing × 0.30
-- 行距是间距的决定性因素，before/after 影响有限
-- 不能直接搬 LaTeX bp 值，需用官方 Word 模板实测
+**重大决策**：合并本科/研究生格式参数，统一使用 2025 本科模板为唯一标准。2021 年研究生模板内部间距不一致（第1章和第6章的 L2→正文 从 0.84cm 跳到 1.05cm），不具备参考价值。如后续出 2025 版研究生模板，再用 VBA 实测比对。
 
-**当前配置（已校准）：**
+**最终配置：**
 
 | 参数 | 值 | 说明 |
 |------|-----|------|
-| heading_before | 454tw (22.7pt) | 双线到标题间距 1cm |
-| heading_after | 400tw (20pt) | 标题到正文间距 |
+| heading_before | 400tw (20pt) | L1 距页顶 4.50cm（对齐模板 4.49cm） |
+| heading_after | 340tw (17pt) | L1→正文 1.60cm（对齐模板 1.59cm） |
 | heading_line | 288 (1.2×) | 标题行距 |
-| section_before | 0pt | 节标题段前 |
-| section_after | 8pt | 节标题段后 |
-| subsection_before | 7pt | 小节标题段前 |
-| subsection_after | 9pt | 小节标题段后 |
-| subsubsection_before | 0pt | 子小节标题段前 |
-| subsubsection_after | 3pt | 子小节标题段后 |
+| section_before | 10pt | 正文→L2 1.07cm（模板 1.02cm） |
+| section_after | 12pt | L2→正文 1.19cm（对齐模板 1.19cm） |
+| subsection_before | 8pt | 正文→L3 1.00cm（模板 1.02cm） |
+| subsection_after | 12pt | L3→正文 1.10cm（模板 1.13cm） |
+| subsubsection_before | 0pt | 正文→L4 0.74cm（模板 0.69cm） |
+| subsubsection_after | 3pt | L4→正文 0.68cm（对齐模板 0.68cm） |
 
-**页面设置（对齐官方本科模板）：**
+**实测间距（与本科模板对比）：**
 
-| 参数 | 值 |
-|------|-----|
-| 上边距 | 3.80cm |
-| 下边距 | 3.00cm |
-| 左边距 | 3.00cm |
-| 右边距 | 3.00cm |
-| 页眉距离 | 3.00cm |
-| 页脚距离 | 2.30cm |
-
-**实测间距（与官方模板对比）：**
-
-| 组合 | 官方模板 | 实测值 | 状态 |
+| 组合 | 本科模板 | 实测值 | 偏差 |
 |------|----------|--------|------|
-| L1→L2 | 1.68cm | 1.69cm | ✓ |
-| L2→L3 | 1.04cm | 1.06cm | ✓ |
-| L3→L4 | 0.98cm | 1.00cm | ✓ |
-| L2↔正文 | 1.04cm | 1.06-1.07cm | ✓ 统一 |
-| L3↔正文 | 0.98cm | 0.95-1.00cm | ✓ 统一 |
-| L4↔正文 | 0.66cm | 0.68-0.71cm | ✓ |
+| L1 距页顶 | 4.49cm | 4.50cm | +0.01 |
+| L1→L2 | 1.57cm | 1.60cm | +0.03 |
+| L1→正文 | 1.59cm | 1.60cm | +0.01 |
+| L2→正文 | 1.19-1.21cm | 1.19-1.20cm | ✓ |
+| 正文→L2 | 1.01-1.04cm | 1.07-1.08cm | +0.05 |
+| L2→L3 | 1.19cm | 1.09cm | -0.10 |
+| L3→正文 | 1.13-1.15cm | 1.09-1.10cm | -0.04 |
+| 正文→L3 | 1.01-1.04cm | 1.00-1.02cm | ✓ |
+| L3→L4 | 1.13cm | 1.09cm | -0.04 |
+| L4→正文 | 0.68cm | 0.68cm | ✓ |
+| 正文→L4 | 0.69cm | 0.74cm | +0.05 |
 
-**L4（子小节标题）处理：**
-- 不加入目录（不设置 outline_level）
-- 用文本模式 `X.Y.Z.W` 识别
+**VBA 测量工具：**
+
+| 文件 | 用途 |
+|------|------|
+| measure_fixed.bas | 全组合测量：L1/L2/L3/L4 ↔ 正文 |
+| measure_header_gap.bas | L1 标题距页顶 |
+| measure_l34.bas | L3↔L4↔正文 专项测量 |
+| measure_page_setup.bas | 页面设置参数 |
 
 ## 未解决
 
@@ -135,6 +133,17 @@
 - **分文件模式**：`include()` 使用 `importlib.import_module` + `build(doc)` 约定，保持API兼容
 
 ## 重构历史
+
+2026-06-06 间距二次校准 + 统一本科/研究生参数：
+- **重大决策**：合并本科和研究生格式参数，以 2025 年本科官方 Word 模板为唯一标准
+- 2021 年研究生模板内部间距不一致，不具备参考价值
+- 章标题段前：454tw → 400tw（L1 距页顶 4.49cm）
+- 章标题段后：400tw → 340tw（L1→正文 1.59cm）
+- 节标题段前：0pt → 10pt，段后：8pt → 12pt（L2↔正文 1.02/1.19cm）
+- 小节标题段前：7pt → 8pt，段后：9pt → 12pt（L3↔正文 1.02/1.13cm）
+- apply_heading_style 默认 after_pt 统一取 SPACING["heading_after"]
+- 删除文档中无效的 space_before 覆盖代码
+- 新增 VBA 测量宏：measure_l34.bas（L3↔L4↔正文），修复 measure_fixed.bas（L4 识别、跨页 bug）
 
 2026-05-30 间距校准（以学校官方本科Word模板为基准）：
 - 建立 Word 特定的间距公式：视觉间距 = space_after + line_spacing × 0.30
