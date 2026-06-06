@@ -56,6 +56,8 @@ class Thesis:
         self._footnotes = []  # 脚注收集 [(id, text), ...]
         self._tab_counter = 0  # 表格计数器
         self._fig_counter = 0  # 图片计数器
+        self._code_counter = 0  # 代码块计数器
+        self._thm_counter = 0  # 定理论引理计数器
         self.info = {
             "title": title,
             "author": author,
@@ -277,6 +279,10 @@ class Thesis:
             display = f" ({ref_num})"
         elif ref_type == "figure":
             display = f" {ref_num}"
+        elif ref_type == "code":
+            display = f" {ref_num}"
+        elif ref_type == "theorem":
+            display = f" {ref_num}"
         else:
             display = f" {ref_num}"
 
@@ -467,21 +473,33 @@ class Thesis:
     def add_authorization(self, add_to_toc=True):
         """添加授权声明"""
         _add_authorization(self.doc, self.info, add_to_toc, thesis_type=self.type)
-    def add_conclusion(self, title='结论', content=None, add_to_toc=True, auto_space=True):
+    def add_conclusion(self, title='结论', content=None, intro=None, add_to_toc=True, auto_space=True):
         """添加结论
         结论作为论文正文的组成部分，单独排写，不加章标题序号。
+        intro: 可选的导语段落（不编号），如 "本文取得了以下主要成果："
+        content: 每条自动编号为（1）（2）...
         auto_space: 两汉字标题自动加全角空格
         """
         para, formatted_title = self._create_heading_para(title, auto_space=auto_space)
+        if intro:
+            para_intro = self.doc.add_paragraph()
+            para_intro.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            para_intro.paragraph_format.line_spacing = Pt(SPACING["body_line_spacing"])
+            para_intro.paragraph_format.space_before = Pt(0)
+            para_intro.paragraph_format.space_after = Pt(0)
+            set_first_line_indent(para_intro, SPACING["first_line_indent"])
+            self._add_text_with_superscripts(para_intro, intro)
         if content:
-            for text in content:
+            for i, text in enumerate(content):
                 para2 = self.doc.add_paragraph()
                 para2.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-                para2.paragraph_format.line_spacing = Pt(20.5)
+                para2.paragraph_format.line_spacing = Pt(SPACING["body_line_spacing"])
                 para2.paragraph_format.space_before = Pt(0)
                 para2.paragraph_format.space_after = Pt(0)
-                set_first_line_indent(para2, 480)
-                self._add_text_with_superscripts(para2, text)
+                set_first_line_indent(para2, SPACING["first_line_indent"])
+                disable_snap_to_grid(para2)
+                prefix = f"（{i + 1}）"
+                self._add_text_with_superscripts(para2, f"{prefix}{text}")
 
     def _add_authorization_old_garbage(self):  # deleted, keeping for reference
         pPr1 = para1._element.get_or_add_pPr()
@@ -824,6 +842,7 @@ class Thesis:
         compile_document(self.doc, filename, thesis_type=self.type,
                          toc_blank_line=self._toc_blank_line,
                          footnotes=self._footnotes if self._footnotes else None)
+
     def _format_title(self, title, with_chapter_prefix=None, auto_space=True):
         """格式化一级标题：
         - 检测两汉字则在中间插入全角空格（结　论），auto_space 可关闭
@@ -1191,6 +1210,83 @@ class Thesis:
         fig = Figure(self, image_path=image_path, caption=caption, width=width, label=ref_num, ref=ref)
         return fig.insert()
 
+    def add_code_block(self, code_text, caption=None, label=None, ref=None):
+        """添加代码块（浅灰底纹、等宽字体、题注在上方）
+
+        Args:
+            code_text: 代码文本，换行用 \\n
+            caption: 代码题注
+            label: 编号，如 "2-1"
+            ref: 引用标签，如 "quick_sort"
+        """
+        if label:
+            ref_num = label
+        else:
+            self._code_counter += 1
+            ref_num = f"{self.chapter_number}-{self._code_counter}"
+
+        if ref:
+            self._cite_registry[ref] = ("code", ref_num)
+            self._resolve_pending_cites_for_tag(ref)
+
+        # ── 题注在上方 ──
+        if caption:
+            para = self.doc.add_paragraph()
+            para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            para.paragraph_format.line_spacing = Pt(14)
+            para.paragraph_format.space_before = Pt(6)
+            para.paragraph_format.space_after = Pt(6)
+            text = f"代码{ref_num}　{caption}"
+
+            if ref:
+                bm_start = OxmlElement('w:bookmarkStart')
+                bm_start.set(qn('w:id'), '0')
+                bm_start.set(qn('w:name'), f"cite_{ref}")
+                para._element.append(bm_start)
+                run = para.add_run(text)
+                set_font(run, "宋体", 10.5)
+                bm_end = OxmlElement('w:bookmarkEnd')
+                bm_end.set(qn('w:id'), '0')
+                bm_end.set(qn('w:name'), f"cite_{ref}")
+                para._element.append(bm_end)
+            else:
+                run = para.add_run(text)
+                set_font(run, "宋体", 10.5)
+
+        # ── 代码体 ──
+        CODE_GRAY = "F5F5F5"
+        for line in code_text.split('\n'):
+            para = self.doc.add_paragraph()
+            para.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            para.paragraph_format.line_spacing = Pt(14)
+            para.paragraph_format.space_before = Pt(0)
+            para.paragraph_format.space_after = Pt(0)
+            # 整体左缩进 0.5cm (283 twips ≈ 0.5cm)
+            para.paragraph_format.left_indent = Cm(0.5)
+            # 无首行缩进
+            para.paragraph_format.first_line_indent = Pt(0)
+            disable_snap_to_grid(para)
+
+            # 浅灰底纹
+            pPr = para._element.get_or_add_pPr()
+            shd = OxmlElement('w:shd')
+            shd.set(qn('w:val'), 'clear')
+            shd.set(qn('w:fill'), CODE_GRAY)
+            pPr.append(shd)
+
+            run = para.add_run(line if line else ' ')
+            # Consolas 是西文字体，需同时设 ascii/hAnsi/eastAsia
+            run.font.name = "Consolas"
+            run.font.size = Pt(9)
+            run.bold = False
+            rPr = run._element.get_or_add_rPr()
+            rFonts = rPr.find(qn('w:rFonts'))
+            if rFonts is None:
+                rFonts = OxmlElement('w:rFonts')
+                rPr.insert(0, rFonts)
+            rFonts.set(qn('w:ascii'), 'Consolas')
+            rFonts.set(qn('w:hAnsi'), 'Consolas')
+            rFonts.set(qn('w:eastAsia'), 'Consolas')
 
     def add_equation(self, formula=None, label=None, ref=None):
         """插入公式（无边框表格，居中，1.5倍行距）
@@ -1324,6 +1420,89 @@ class Thesis:
         target_para = paras[-1] if paras else self.doc.add_paragraph()
         self._insert_footnote_marker(target_para, text)
 
+    def add_page_break(self):
+        """手动分页"""
+        para = self.doc.add_paragraph()
+        run = para.add_run()
+        run._element.append(OxmlElement('w:br'))
+        run._element[-1].set(qn('w:type'), 'page')
+
+    def add_quote(self, text):
+        """引用块：楷体 11pt，左右缩进，段前后 3pt"""
+        para = self.doc.add_paragraph()
+        para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        para.paragraph_format.line_spacing = Pt(18)
+        para.paragraph_format.space_before = Pt(3)
+        para.paragraph_format.space_after = Pt(3)
+        para.paragraph_format.left_indent = Cm(1.0)
+        para.paragraph_format.right_indent = Cm(1.0)
+        para.paragraph_format.first_line_indent = Pt(0)
+        disable_snap_to_grid(para)
+        run = para.add_run(text)
+        run.font.name = '楷体'
+        run._element.rPr.rFonts.set(qn('w:eastAsia'), '楷体')
+        run.font.size = Pt(SPACING["body_font_size"])  # 12pt，与正文一致
+        return para
+
+    def add_list(self, items, style="decimal"):
+        """有序/无序列表：前缀顶格，无悬挂缩进
+
+        Args:
+            items: 列表项文本列表
+            style: "decimal"=1. 2. 3.  "paren"=（1）（2）  "bullet"=—
+        """
+        for i, item in enumerate(items):
+            para = self.doc.add_paragraph()
+            para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            para.paragraph_format.line_spacing = Pt(SPACING["body_line_spacing"])
+            para.paragraph_format.space_before = Pt(0)
+            para.paragraph_format.space_after = Pt(1)
+            set_first_line_indent(para, SPACING["first_line_indent"])
+            disable_snap_to_grid(para)
+            if style == "paren":
+                prefix = f"（{i + 1}）"
+            elif style == "bullet":
+                prefix = "—"
+            else:
+                prefix = f"{i + 1}."
+            run = para.add_run(f"{prefix}  {item}" if style != "paren" else f"{prefix}{item}")
+            set_font(run, "宋体", SPACING["body_font_size"], False)
+
+    def add_theorem(self, text, kind="定理", label=None, ref=None, cite=None):
+        """定理/定义/引理环境：黑体标题 + 宋体正文同行，自动编号（章.序号）
+
+        Args:
+            text: 定理内容
+            kind: 类型 "定理" "定义" "引理" "推论" 等
+            label: 手动编号
+            ref: 交叉引用标签
+            cite: 可选标注，如 "[ref:Einstein]" 或 "Albert Einstein"
+        """
+        if label:
+            ref_num = label
+        else:
+            self._thm_counter += 1
+            ref_num = f"{self.chapter_number}.{self._thm_counter}"
+        if ref:
+            self._cite_registry[ref] = ("theorem", ref_num)
+            self._resolve_pending_cites_for_tag(ref)
+
+        para = self.doc.add_paragraph()
+        para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        para.paragraph_format.line_spacing = Pt(SPACING["body_line_spacing"])
+        para.paragraph_format.space_before = Pt(0)
+        para.paragraph_format.space_after = Pt(0)
+        set_first_line_indent(para, SPACING["first_line_indent"])
+        disable_snap_to_grid(para)
+
+        run = para.add_run(f"{kind} {ref_num}")
+        set_font(run, "黑体", SPACING["body_font_size"], True)
+        if ref:
+            add_bookmark(para._element, f"cite_{ref}")
+        if cite:
+            self._add_text_with_superscripts(para, f"{cite}")
+        self._add_text_with_superscripts(para, f"  {text}" if text else "")
+
 
 class ChapterContext:
     """章节上下文管理器"""
@@ -1343,6 +1522,8 @@ class ChapterContext:
         self.thesis._eq_counter = 0  # 重置公式计数器
         self.thesis._tab_counter = 0  # 重置表格计数器
         self.thesis._fig_counter = 0  # 重置图片计数器
+        self.thesis._code_counter = 0  # 重置代码块计数器
+        self.thesis._thm_counter = 0  # 重置定理计数器
         self.thesis._cite_registry = {}  # 清空引用注册表
         self.thesis._pending_cites = []  # 清空待解析引用
 

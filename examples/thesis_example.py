@@ -206,6 +206,24 @@ Based on the theoretical analysis, an experimental prototype is designed and fab
             "多孔质材料选用青铜基粉末冶金材料，孔隙率为15%~25%[ref:Jones2012]。"
         )
 
+        doc.add_section("定理与引理")
+        doc.add_theorem(
+            "气体静压轴承的稳态承载力等于气膜压力在承载面上的积分。"
+            "对于不可压缩流体，承载力与供气压力呈线性关系。",
+            kind="定理", ref="thm_bearing", cite="[ref:Gross1962]"
+        )
+        doc.add_theorem(
+            "气体静压轴承是依靠外部供气压力在轴承间隙中形成承载气膜的"
+            "一种滑动轴承，其工作原理基于流体动压效应与外部静压效应的耦合。",
+            kind="定义", ref="def_bearing"
+        )
+        doc.add_theorem(
+            "由定理 [cite:thm_bearing] 可知，提高供气压力是增大轴承承载力的有效途径。"
+            "当供气压力从 0.3 MPa 提升至 0.5 MPa 时，理论承载力可提高约 40%。",
+            kind="推论"
+        )
+        doc.add_paragraph("定理 [cite:thm_bearing] 和定义 [cite:def_bearing] 为本文的理论分析奠定了基础。")
+
         doc.add_section("边界条件")
         doc.add_paragraph(
             "气膜边界条件包括供气孔处的压力边界条件和气膜出口处的压力边界条件[ref:Zhang2015]。"
@@ -279,16 +297,13 @@ Based on the theoretical analysis, an experimental prototype is designed and fab
     # ================================================================
     doc.add_conclusion(
         title="结论",
+        intro="本文针对局部多孔质气体静压轴承的关键技术问题[ref:Zhang2015][ref:Chen2019]，"
+              "开展了系统的理论分析、数值模拟和实验研究工作，取得了以下主要成果：",
         content=[
-            "本文针对局部多孔质气体静压轴承的关键技术问题[ref:Zhang2015][ref:Chen2019]，"
-            "开展了系统的理论分析、数值模拟和实验研究工作，取得了以下主要成果：",
-            "（1）建立了局部多孔质气体静压轴承的完整理论模型，揭示了多孔质结构对轴承静动态性能的影响规律。",
-            "（2）通过有限元分析和优化设计，确定了最优的多孔质分布方案，显著提高了轴承的承载能力和刚度"
-            "[ref:Blaschke2005][ref:Jones2012]。",
-            "（3）设计并加工了实验样机，完成了静态和动态性能测试，验证了理论分析的正确性[ref:Wang2015book]。",
-            "研究成果对于推动气体静压轴承在高精度机床和航空航天领域的应用具有重要的理论价值和工程意义"
-            "[ref:Zhao2016][ref:Gross1962][ref:Zhang2015][ref:Wang2010][ref:Blaschke2005]"
-            "[ref:Li2018][ref:Jones2012][ref:Wang2020][ref:Smith2010]。"
+            "建立了局部多孔质气体静压轴承的完整理论模型，揭示了多孔质结构对轴承静动态性能的影响规律。",
+            "通过有限元分析和优化设计，确定了最优的多孔质分布方案，显著提高了轴承的承载能力和刚度[ref:Blaschke2005][ref:Jones2012]。",
+            "设计并加工了实验样机，完成了静态和动态性能测试，验证了理论分析的正确性[ref:Wang2015book]。",
+            "研究成果对于推动气体静压轴承在高精度机床和航空航天领域的应用具有重要的理论价值和工程意义[ref:Zhao2016][ref:Gross1962][ref:Zhang2015][ref:Wang2010][ref:Blaschke2005][ref:Li2018][ref:Jones2012][ref:Wang2020][ref:Smith2010]。"
         ]
     )
 

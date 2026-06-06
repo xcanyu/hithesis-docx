@@ -114,7 +114,7 @@ doc.set_info(
 | `doc.add_abstract_en(text, keywords)` | 英文摘要，关键词用 `, ` 分隔 |
 | `doc.add_denotation(items)` | 物理量名称及符号表（可选） |
 | `doc.add_toc(blank_line_before=False)` | 目录 |
-| `doc.add_conclusion(title, content, auto_space=True)` | 结论 |
+| `doc.add_conclusion(title, content, intro)` | 结论（intro 导语不编号，content 自动 `（1）（2）...`） |
 | `doc.add_acknowledgements(title, content, auto_space=True)` | 致谢 |
 | `doc.add_references(bib)` | 参考文献（支持 `ReferenceDB` 或字符串列表） |
 | `doc.add_authorization()` | 授权声明页（根据 type 自动选择本科/硕博版本） |
@@ -157,6 +157,20 @@ doc.add_figure("image.png", caption="实验结果对比", width=Cm(10), ref="fig
 
 # 公式（无边框表格，编号右对齐）
 doc.add_equation(r"\frac{\partial p}{\partial x} = 0", label="2-1", ref="eq_ns")
+
+# 代码块（Consolas 9pt 灰底，题注在上）
+doc.add_code_block("def hello():\n    print('hello')", caption="Hello World", ref="code_hello")
+
+# 列表（有序/无序/括号三种格式）
+doc.add_list(["研究内容一", "研究内容二"], style="decimal")   # 1. 2. 3.
+doc.add_list(["设备一", "设备二"], style="bullet")              # — 前缀
+doc.add_list(["步骤一", "步骤二"], style="paren")               # （1）（2）
+
+# 定理/定义/引理（标题正文同行，cite 支持 [ref:xxx] 文献引用）
+doc.add_theorem("对于不可压缩流体...", kind="定理", ref="thm_1", cite="[ref:Gross1962]")
+
+# 引用块（楷体 12pt，左右缩进）
+doc.add_quote("气体轴承的概念最早由法国学者Hirn于1854年提出...")
 
 # 脚注
 doc.add_footnote("此处指公开发表的学术论文。")
@@ -313,6 +327,7 @@ hithesis-docx/
 ├── output/                     # 生成的文档输出
 ├── requirements.txt
 ├── README.md
+├── md转Word排版-skill.md       # OpenCode skill（md→docx 转换）
 └── LICENSE
 ```
 
@@ -330,23 +345,25 @@ python examples/thesis_split/thesis_main.py
 
 ## 已知问题
 
-- **空白页 Bug**：TOC 域展开后，目录与第一章之间可能出现多余空白页。这是 Word COM 域更新的固有问题，需手动删除。
-- **子图**：单图可用，并排图、子图编号未支持。
+- **空白页 Bug**：TOC 域展开后，目录与第一章之间可能出现多余空白页。
 - **公式字体**：OMML 公式字体由 Word 内部管理，暂不支持强制设置为 Times New Roman。
 - **WPS 兼容性**：字间距（`w:spacing`）在 Word 和 WPS 下渲染效果有差异，以 Word 为准。
-- **格式偏差**：部分间距、字体与标准不完全一致（详见 dev-notes.md）。
 
 ## 未实现
 
 - 硕博封面（暂时用本科封面替代）
 - 深圳、威海校区适配
 - 中英双语图题/表题（博士要求）
-- 子图
-- 定理环境（definition/theorem/lemma/proof）
+- 子图（并排图、子图编号 a/b）
 - 长表格（续表，跨页重复表头）
+- 算法伪代码（行号+关键词着色）
 - 开题/中期报告
 - 英文目录
 - 全日制/非全日制区分
+
+## Skill
+
+本项目附带 OpenCode skill（`md转Word排版-skill.md`），基于本项目的格式规范，可自动将 Markdown 转换为 hithesis 格式的 Word 文档。将其放入 `~/.claude/skills/md-to-hithesis-docx/` 或 OpenCode 对应目录即可生效。
 
 ## 注意事项
 
