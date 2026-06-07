@@ -61,13 +61,14 @@ def add_cover(doc, info: dict, thesis_type: str, english_title: str = None):
     else:
         en_font_size = 22
 
-    para_en = doc.add_paragraph()
-    para_en.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    para_en.paragraph_format.line_spacing = Pt(25)
-    para_en.paragraph_format.space_before = Pt(17.4)
-    para_en.paragraph_format.space_after = Pt(67.2)
-    run_en = para_en.add_run(english_title)
-    set_font(run_en, "Times New Roman", en_font_size, True)
+    if english_title:
+        para_en = doc.add_paragraph()
+        para_en.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        para_en.paragraph_format.line_spacing = Pt(25)
+        para_en.paragraph_format.space_before = Pt(17.4)
+        para_en.paragraph_format.space_after = Pt(67.2)
+        run_en = para_en.add_run(english_title)
+        set_font(run_en, "Times New Roman", en_font_size, True)
 
     # 作者姓名
     para_author = doc.add_paragraph()
