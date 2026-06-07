@@ -98,8 +98,8 @@ def _process_body_markers(doc_tree, footnotes):
             bm_start.set(f'{{{W}}}name', f'_ftnref{fn_id}')
             bm_end = etree.Element(f'{{{W}}}bookmarkEnd')
             bm_end.set(f'{{{W}}}id', str(bm_id))
-            r.addprevious(bm_end)
             r.addprevious(bm_start)
+            r.addprevious(bm_end)
 
     # 第二遍：在 ① run 前插入 footnoteReference（脚注定位），将 ① 包裹在 hyperlink 中
     for p in body.iter(f'{{{W}}}p'):
