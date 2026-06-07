@@ -3,7 +3,8 @@
 """
 
 from docx.shared import Pt, Cm
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
+from docx.enum.section import WD_SECTION_START
 from .config import UNIVERSITY_NAME
 from .ooxml_utils import (
     set_font, estimate_text_width, set_cell_vertical_alignment,
@@ -59,9 +60,9 @@ def add_cover(doc, info: dict, thesis_type: str, english_title: str = None):
 
     para_en = doc.add_paragraph()
     para_en.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    para_en.paragraph_format.line_spacing = Pt(28)
+    para_en.paragraph_format.line_spacing = Pt(25)
     para_en.paragraph_format.space_before = Pt(17.4)
-    para_en.paragraph_format.space_after = Pt(76.9)
+    para_en.paragraph_format.space_after = Pt(67.2)
     run_en = para_en.add_run(english_title)
     set_font(run_en, "Times New Roman", en_font_size, True)
 
@@ -70,7 +71,7 @@ def add_cover(doc, info: dict, thesis_type: str, english_title: str = None):
     para_author.alignment = WD_ALIGN_PARAGRAPH.CENTER
     para_author.paragraph_format.line_spacing = Pt(22)
     para_author.paragraph_format.space_before = Pt(0)
-    para_author.paragraph_format.space_after = Pt(136.8)
+    para_author.paragraph_format.space_after = Pt(139.2)
     run_author = para_author.add_run(info.get("author", ""))
     set_font(run_author, "宋体", 18, True)
 
@@ -79,7 +80,7 @@ def add_cover(doc, info: dict, thesis_type: str, english_title: str = None):
     para_univ.alignment = WD_ALIGN_PARAGRAPH.CENTER
     para_univ.paragraph_format.line_spacing = Pt(22)
     para_univ.paragraph_format.space_before = Pt(0)
-    para_univ.paragraph_format.space_after = Pt(8)
+    para_univ.paragraph_format.space_after = Pt(9.7)
     run_univ = para_univ.add_run("哈尔滨工业大学")
     set_font(run_univ, "楷体", 18, True)
 
@@ -89,7 +90,7 @@ def add_cover(doc, info: dict, thesis_type: str, english_title: str = None):
     para_date.paragraph_format.line_spacing = Pt(22)
     para_date.paragraph_format.space_before = Pt(0)
     para_date.paragraph_format.space_after = Pt(14.25)
-    date_str = info.get("date", "2026年5月8日")
+    date_str = info.get("date", "")
     run_date = para_date.add_run(date_str)
     set_font(run_date, "宋体", 18, True)
 
@@ -110,20 +111,39 @@ def add_cover2_bachelor(doc, info: dict):
     from docx.oxml.ns import qn
     from docx.oxml import OxmlElement
 
-    # 1. 密级：公开
+    # 分节符（新页面）
+    section = doc.add_section()
+    section.start_type = WD_SECTION_START.NEW_PAGE
+
+    # 1. 密级行：左侧勾选项 + 右侧密级
     para_secret = doc.add_paragraph()
-    para_secret.alignment = WD_ALIGN_PARAGRAPH.RIGHT
     para_secret.paragraph_format.space_before = Pt(0)
     para_secret.paragraph_format.space_after = Pt(0)
     para_secret.paragraph_format.line_spacing = Pt(14)
-    para_secret.paragraph_format.right_indent = Cm(0.3)
-    para_secret.paragraph_format.page_break_before = True
     disable_snap_to_grid(para_secret)
-    run = para_secret.add_run("密级：公开")
-    set_font(run, "宋体", 14, False)
+    # 清除列表格式
+    pPr = para_secret._element.get_or_add_pPr()
+    numPr = pPr.find(qn('w:numPr'))
+    if numPr is not None:
+        pPr.remove(numPr)
+    outlineLvl = pPr.find(qn('w:outlineLvl'))
+    if outlineLvl is not None:
+        pPr.remove(outlineLvl)
+    # 左侧：勾选项（TNR空格分隔）
+    run_left1 = para_secret.add_run("☐毕业论文")
+    set_font(run_left1, "宋体", 12, False)
+    run_space1 = para_secret.add_run("    ")  # TNR四格约12.5pt
+    set_font(run_space1, "Times New Roman", 12, False)
+    run_left2 = para_secret.add_run("☐毕业设计")
+    set_font(run_left2, "宋体", 12, False)
+    # 用TNR空格推到右侧（224.6pt ≈ 75个TNR空格）
+    run_space = para_secret.add_run(" " * 77)
+    set_font(run_space, "Times New Roman", 12, False)
+    run_right = para_secret.add_run("密级：公开")
+    set_font(run_right, "宋体", 12, False)
 
     # 2. 空白
-    add_spacer(doc, 79.7)
+    add_spacer(doc, 58.3)
 
     # 3. "本科毕业论文（设计）"
     para_label = doc.add_paragraph()
@@ -136,7 +156,7 @@ def add_cover2_bachelor(doc, info: dict):
     set_font(run, "宋体", 18, True)
 
     # 4. 空白
-    add_spacer(doc, 46.8)
+    add_spacer(doc, 45.1)
 
     # 5. 论文标题
     thesis_title = info.get("title", "")
@@ -150,7 +170,7 @@ def add_cover2_bachelor(doc, info: dict):
     set_font(run, "黑体", 22, False)
 
     # 6. 空白到表格
-    add_spacer(doc, 192.2)
+    add_spacer(doc, 159.2)
 
     # 7. 学生信息表格
     left_indent_twips = int((171 - 3.0 / 2.54 * 72) * 20)
@@ -258,7 +278,7 @@ def add_cover2_bachelor(doc, info: dict):
                 pPr.append(spacing)
             spacing.set(qn('w:before'), '152')
             spacing.set(qn('w:after'), '152')
-            spacing.set(qn('w:line'), '280')
+            spacing.set(qn('w:line'), '360')
             spacing.set(qn('w:lineRule'), 'exact')
 
             if col_idx == 0:

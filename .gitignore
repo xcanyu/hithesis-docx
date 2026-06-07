@@ -28,6 +28,7 @@ Thumbs.db
 # Project docs (local only)
 dev-notes.md
 hithesis-format-spec.md
+AGENTS.md
 
 # Temporary/cache
 .spec-workflow/

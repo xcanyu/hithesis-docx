@@ -1210,6 +1210,31 @@ class Thesis:
         fig = Figure(self, image_path=image_path, caption=caption, width=width, label=ref_num, ref=ref)
         return fig.insert()
 
+    def add_subfigure(self, subfigures, caption=None, label=None, ref=None, cols=None):
+        """添加子图（支持并排或网格布局）
+
+        Args:
+            subfigures: [(image_path, subcaption), ...] 子图列表
+            caption: 总图题
+            label: 编号，如 "1-1"
+            ref: 引用标签
+            cols: 每行列数，默认自动（1行并排）
+        """
+        # 自动编号
+        if label:
+            ref_num = label
+        else:
+            self._fig_counter += 1
+            ref_num = f"{self.chapter_number}-{self._fig_counter}"
+
+        # 注册引用
+        if ref:
+            self._cite_registry[ref] = ("figure", ref_num)
+            self._resolve_pending_cites_for_tag(ref)
+
+        fig = SubFigure(self, subfigures, caption=caption, label=ref_num, ref=ref, cols=cols)
+        return fig.insert()
+
     def add_code_block(self, code_text, caption=None, label=None, ref=None):
         """添加代码块（浅灰底纹、等宽字体、题注在上方）
 
@@ -1809,6 +1834,117 @@ class Figure:
             text = f"图{self.label}　{self.caption}" if self.label else self.caption
 
             # 添加带书签的文本
+            if self.ref:
+                bm_start = OxmlElement('w:bookmarkStart')
+                bm_start.set(qn('w:id'), '0')
+                bm_start.set(qn('w:name'), f"cite_{self.ref}")
+                para._element.append(bm_start)
+
+                run = para.add_run(text)
+                set_font(run, "宋体", 10.5)
+
+                bm_end = OxmlElement('w:bookmarkEnd')
+                bm_end.set(qn('w:id'), '0')
+                bm_end.set(qn('w:name'), f"cite_{self.ref}")
+                para._element.append(bm_end)
+            else:
+                run = para.add_run(text)
+                set_font(run, "宋体", 10.5)
+
+        return self
+
+
+class SubFigure:
+    """子图元素（支持并排或网格布局，每个子图有 (a)(b)(c) 标号）"""
+
+    def __init__(self, thesis, subfigures, caption=None, label=None, ref=None, cols=None):
+        self.thesis = thesis
+        self.doc = thesis.doc
+        self.subfigures = subfigures  # [(image_path, subcaption), ...]
+        self.caption = caption
+        self.label = label
+        self.ref = ref
+        self.cols = cols  # 每行列数，默认自动（1行并排）
+
+    def insert(self):
+        """插入子图"""
+        n = len(self.subfigures)
+        
+        # 确定行列数
+        if self.cols:
+            cols = self.cols
+        else:
+            cols = n  # 默认并排
+        rows = (n + cols - 1) // cols  # 向上取整
+
+        table = self.doc.add_table(rows=rows * 2, cols=cols)  # 每行子图占2行（图+题注）
+        table.alignment = WD_TABLE_ALIGNMENT.CENTER
+
+        # 清除表格边框
+        tbl = table._tbl
+        tblPr = tbl.find(qn('w:tblPr'))
+        if tblPr is None:
+            tblPr = OxmlElement('w:tblPr')
+            tbl.insert(0, tblPr)
+        tblBorders = OxmlElement('w:tblBorders')
+        for border_name in ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']:
+            b = OxmlElement(f'w:{border_name}')
+            b.set(qn('w:val'), 'none')
+            b.set(qn('w:sz'), '0')
+            b.set(qn('w:space'), '0')
+            b.set(qn('w:color'), 'auto')
+            tblBorders.append(b)
+        old_borders = tblPr.find(qn('w:tblBorders'))
+        if old_borders is not None:
+            tblPr.remove(old_borders)
+        tblPr.append(tblBorders)
+
+        # 设置表格宽度为100%
+        tblW = OxmlElement('w:tblW')
+        tblW.set(qn('w:w'), '5000')
+        tblW.set(qn('w:type'), 'pct')
+        old_tblW = tblPr.find(qn('w:tblW'))
+        if old_tblW is not None:
+            tblPr.remove(old_tblW)
+        tblPr.append(tblW)
+
+        letters = 'abcdefghijklmnopqrstuvwxyz'
+
+        # 填充子图
+        for i, (image_path, subcaption) in enumerate(self.subfigures):
+            row_idx = (i // cols) * 2  # 图片行
+            col_idx = i % cols
+            
+            # 图片单元格
+            cell = table.cell(row_idx, col_idx)
+            para = cell.paragraphs[0]
+            para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            para.paragraph_format.space_before = Pt(0)
+            para.paragraph_format.space_after = Pt(0)
+            if image_path:
+                run = para.add_run()
+                run.add_picture(image_path, width=Cm(10 / cols))
+
+            # 题注单元格
+            cell_cap = table.cell(row_idx + 1, col_idx)
+            para_cap = cell_cap.paragraphs[0]
+            para_cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            para_cap.paragraph_format.space_before = Pt(2)
+            para_cap.paragraph_format.space_after = Pt(0)
+            letter = letters[i] if i < len(letters) else str(i + 1)
+            text = f"({letter}) {subcaption}" if subcaption else f"({letter})"
+            run = para_cap.add_run(text)
+            set_font(run, "宋体", 10.5)
+
+        # 总图题在表格下方
+        if self.caption:
+            para = self.doc.add_paragraph()
+            para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            para.paragraph_format.line_spacing = Pt(14)
+            para.paragraph_format.space_before = Pt(6)
+            para.paragraph_format.space_after = Pt(6)
+            text = f"图{self.label}　{self.caption}" if self.label else self.caption
+
             if self.ref:
                 bm_start = OxmlElement('w:bookmarkStart')
                 bm_start.set(qn('w:id'), '0')
