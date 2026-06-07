@@ -1,6 +1,11 @@
 """
-编译流水线
-封装文档保存 → Word COM 域更新 → TOC 后处理的完整流程
+编译流水线：python-docx 生成 .docx 后的后处理步骤。
+
+流程：
+  1. 保存 _raw.docx（中间文件，可作为备份）
+  2. Word COM 更新域（仅 Windows：展开 TOC、更新页码等）
+  3. TOC 字体修复（ZIP 后处理：修正 Word 生成的目录字体为黑体/宋体）
+  4. 脚注注入（ZIP 后处理：python-docx 不支持脚注，需手动注入 footnotes.xml）
 """
 
 import os

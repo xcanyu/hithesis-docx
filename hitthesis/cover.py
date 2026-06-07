@@ -27,6 +27,9 @@ def add_cover(doc, info: dict, thesis_type: str, english_title: str = None):
         "doctor": "博士学位论文",
     }.get(thesis_type, "学位论文")
 
+    # 封面间距校准值（基于 2025 年官方本科 Word 模板 VBA 实测 + 直尺验证，误差 < 2mm）
+    # 详见 dev-notes.md "封面间距校准"
+
     # 第一行
     para = doc.add_paragraph()
     para.alignment = WD_ALIGN_PARAGRAPH.CENTER

@@ -1,4 +1,12 @@
-"""脚注后处理：在正文中插入带超链接的脚注标记，生成 word/footnotes.xml。"""
+"""脚注后处理：python-docx 不支持脚注，需在编译后通过 ZIP 后处理注入。
+
+机制：
+  正文：隐藏的 w:footnoteReference（1pt，Word 内部定位用）+ ① 包裹在 w:hyperlink 中（点击跳脚注）
+  脚注区：w:bookmark（跳转目标）+ ①（静态文字）+ 脚注内容
+  单向跳转：正文→脚注，脚注不回跳。
+
+已知限制：脚注编号全文连续计数，不按页重置（python-docx 生成阶段无法获知页码）。
+"""
 
 import os
 import zipfile
@@ -47,7 +55,7 @@ def fix_footnotes(filename, footnotes):
     if ct_tree is not None:
         _add_footnote_content_type(ct_tree)
 
-    # 6. 写回 ZIP
+    # 6. 写回 ZIP：替换已修改的文件，新文档可能没有 footnotes.xml 需要补写
     modified_doc = etree.tostring(doc_tree, xml_declaration=True, encoding='UTF-8', standalone=True)
     modified_rels = etree.tostring(rels_tree, xml_declaration=True, encoding='UTF-8', standalone=True)
     modified_settings = etree.tostring(settings_tree, xml_declaration=True, encoding='UTF-8', standalone=True)
@@ -77,9 +85,15 @@ def fix_footnotes(filename, footnotes):
 
 
 def _process_body_markers(doc_tree, footnotes):
-    """正文标记：① 前加 footnoteReference（定位+原生链接）+ ① 包裹 w:hyperlink（显式超链接）+ 回跳书签"""
+    """将正文中的 ① 替换为脚注标记。
+
+    两遍处理：
+    第一遍：在 ① 前插入 bookmark（脚注区 hyperlink 的跳转目标）
+    第二遍：插入隐藏 footnoteReference + 将 ① 包裹在 hyperlink 中
+    分两遍是因为 lxml 的 addprevious 顺序敏感——先插 bm_start 再插 bm_end 才能保证正确顺序。
+    """
     circle_map = {CIRCLE[i]: i + 1 for i in range(len(CIRCLE))}
-    bookmark_id_counter = [100]
+    bookmark_id_counter = [100]  # 从100开始避免与其他书签ID冲突
 
     body = doc_tree.find(f'{{{W}}}body')
     for p in body.iter(f'{{{W}}}p'):
@@ -109,7 +123,7 @@ def _process_body_markers(doc_tree, footnotes):
                 continue
             fn_id = circle_map[t.text]
 
-            # footnoteReference：脚注定位锚点（1pt 不可见）
+            # footnoteReference：Word 内部用的脚注锚点，设为 1pt 隐藏（不可见但不影响跳转）
             ref_run = etree.Element(f'{{{W}}}r')
             ref_rPr = etree.SubElement(ref_run, f'{{{W}}}rPr')
             ref_style = etree.SubElement(ref_rPr, f'{{{W}}}rStyle')
@@ -120,7 +134,7 @@ def _process_body_markers(doc_tree, footnotes):
             fn_ref.set(f'{{{W}}}id', str(fn_id))
             r.addprevious(ref_run)
 
-            # 将 ① 包裹在 w:hyperlink 中（可见的可点击超链接）
+            # 将 ① 包裹在 w:hyperlink 中，anchor 指向脚注区的 bookmark "_ftn{id}"
             hl = etree.Element(f'{{{W}}}hyperlink')
             hl.set(f'{{{W}}}anchor', f'_ftn{fn_id}')
             hl.set(f'{{{W}}}history', '1')

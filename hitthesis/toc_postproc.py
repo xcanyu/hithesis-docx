@@ -1,9 +1,14 @@
 """
-TOC 后处理
-修改 docx 内部 document.xml，修正 Word 生成的目录字体和格式
-- TOC1 = 黑体加粗，TOC2/TOC3 = 宋体常规
-- 可选在第一章前插入空白行
-- 修复本科生 cover2 的 spacer 段落和表格边框
+TOC 后处理：Word 更新域后生成的目录字体不符合要求，需通过 ZIP 后处理修正。
+
+为什么不能用 python-docx：
+  TOC 内容是 Word 更新域时自动生成的（python-docx 无法控制其格式），只能在生成后
+  直接修改 docx 内部的 XML 来修正字体。
+
+处理内容：
+  - TOC1（章标题）= 黑体，TOC2/TOC3（节标题）= 宋体，字号 12pt
+  - 可选在第一章前插入空白行
+  - 修复本科生 cover2 的 spacer 段落和表格边框（Word COM 可能篡改）
 """
 
 import zipfile
@@ -12,6 +17,7 @@ from lxml import etree
 
 W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
 
+# Word 不同版本生成的 TOC 样式名可能不同（TOC1 vs TOC 1 vs TOC 1 Hyperlink），全部覆盖
 TOC_CONFIGS = {
     'TOC1': {'font': '黑体', 'bold': False},
     'TOC 1': {'font': '黑体', 'bold': False},

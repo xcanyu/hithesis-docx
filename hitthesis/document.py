@@ -193,7 +193,17 @@ class Thesis:
 
 
     def _add_text_with_superscripts(self, para, text):
-        """解析文本，处理上标、交叉引用和 $...$ LaTeX 公式"""
+        """解析文本中的特殊标记并渲染为 OOXML。
+
+        支持四种标记（可混用）：
+          [ref:key]       → 参考文献引用（上标，连续的自动合并为 [1-3]）
+          [cite:tag]      → 交叉引用（超链接跳转到图表/公式）
+          [数字]           → 手动上标编号
+          $LaTeX$         → LaTeX 公式/化学式
+
+        处理方式：先收集所有标记位置，按顺序分段渲染。
+        连续的 [ref:] 先收集再批量输出（为了合并区间）。
+        """
         import re
         ref_keys = []
         last_end = 0
@@ -442,7 +452,8 @@ class Thesis:
         run = para.add_run("目　录")
         set_font(run, "黑体", 18, False)
 
-        # TOC 域
+        # TOC 域代码：\o "1-3" 收集1-3级标题，\h 超链接，\z 隐藏Web标签，\u 使用大纲级别
+        # 打开文档后 Word 需要更新此域才能显示目录内容（Windows 编译时自动更新）
         para = self.doc.add_paragraph()
         run = para.add_run()
         fldChar1 = OxmlElement('w:fldChar')
@@ -782,7 +793,11 @@ class Thesis:
         return para
 
     def _insert_footnote_marker(self, para, text):
-        """在段落末尾标点符号前插入脚注上标标记"""
+        """在段落末尾标点符号前插入脚注上标标记。
+
+        脚注标记需要插在标点前面（如"研究。①"而非"研究①。"），所以要拆分末尾标点：
+        正文文字留在原 run → 标记 run → 标点移到新 run。
+        """
         idx = len(self._footnotes) + 1
         self._footnotes.append((idx, text))
         CIRCLE = "①②③④⑤⑥⑦⑧⑨"

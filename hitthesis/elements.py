@@ -69,8 +69,15 @@ class Table:
         return self
 
     def _apply_three_line_style(self):
-        r"""应用三线表样式（booktabs风格）
-        顶线/底线 = 1.5磅 = w:sz=12，中线 = 1磅 = w:sz=8
+        r"""应用三线表样式（booktabs 风格）
+
+        三线表只有三条水平线：顶线（粗）、表头下方中线（粗）、底线（粗）。
+        实现方式：
+          1. 表格级：清除所有边框（tblBorders 全设 none）
+          2. 单元格级（tcBorders）：按行设置 top/bottom
+             - 第一行：top(1.5pt) + bottom(1.0pt) — 顶线和表头下中线
+             - 最后一行：bottom(1.5pt) — 底线
+             - 中间行：无边框
         """
         if not self._table:
             return
