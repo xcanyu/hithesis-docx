@@ -167,6 +167,11 @@ def _build_footnotes_xml(footnotes):
             f'</w:rPr>'
             f'<w:t>{circle}</w:t>'
             f'</w:r>'
+            # 空格分隔
+            f'<w:r>'
+            f'<w:rPr><w:sz w:val="21"/><w:rFonts w:eastAsia="宋体"/></w:rPr>'
+            f'<w:t xml:space="preserve">　</w:t>'
+            f'</w:r>'
             # 脚注文字
             f'<w:r>'
             f'<w:rPr>'
