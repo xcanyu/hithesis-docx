@@ -158,11 +158,10 @@ def _build_footnotes_xml(footnotes):
             # 书签（正文 hyperlink 的跳转目标）
             f'<w:bookmarkStart w:id="{bm_id}" w:name="_ftn{fn_id}"/>'
             f'<w:bookmarkEnd w:id="{bm_id}"/>'
-            # 上标编号 ①
+            # 编号 ①（正常字号，不上标）
             f'<w:r>'
             f'<w:rPr>'
             f'<w:sz w:val="18"/>'
-            f'<w:vertAlign w:val="superscript"/>'
             f'<w:rFonts w:eastAsia="宋体" w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>'
             f'</w:rPr>'
             f'<w:t>{circle}</w:t>'
