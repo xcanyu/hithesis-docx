@@ -68,7 +68,7 @@ def fix_footnotes(filename, footnotes):
 
 
 def _process_body_markers(doc_tree, footnotes):
-    """将正文中的 ① 替换为 w:footnoteReference（Word 原生编号）"""
+    """将正文中的 ① 前插入隐藏 footnoteReference（Word 跳转用），① 保留为可见标记"""
     circle_map = {CIRCLE[i]: i + 1 for i in range(len(CIRCLE))}
 
     body = doc_tree.find(f'{{{W}}}body')
@@ -79,19 +79,16 @@ def _process_body_markers(doc_tree, footnotes):
                 continue
             fn_id = circle_map[t.text]
 
-            # 插入 w:footnoteReference
+            # 插入隐藏的 w:footnoteReference（1pt，不可见，仅用于 Word 跳转）
             ref_run = etree.Element(f'{{{W}}}r')
             ref_rPr = etree.SubElement(ref_run, f'{{{W}}}rPr')
             ref_style = etree.SubElement(ref_rPr, f'{{{W}}}rStyle')
             ref_style.set(f'{{{W}}}val', 'FootnoteReference')
             ref_sz = etree.SubElement(ref_rPr, f'{{{W}}}sz')
-            ref_sz.set(f'{{{W}}}val', '20')
+            ref_sz.set(f'{{{W}}}val', '2')
             fn_ref = etree.SubElement(ref_run, f'{{{W}}}footnoteReference')
             fn_ref.set(f'{{{W}}}id', str(fn_id))
             r.addprevious(ref_run)
-
-            # 删除原始 ① run
-            p.remove(r)
 
 
 def _ensure_footnote_pr(settings_tree):
@@ -119,7 +116,7 @@ def _build_footnotes_xml(footnotes):
             f'<w:footnote w:id="{fn_id}">'
             f'<w:p>'
             f'<w:pPr><w:spacing w:line="270" w:lineRule="auto"/></w:pPr>'
-            # 静态上标编号（无 footnoteRef，不生成回跳链接）
+            # 上标编号 ①
             f'<w:r>'
             f'<w:rPr>'
             f'<w:sz w:val="18"/>'
@@ -128,12 +125,12 @@ def _build_footnotes_xml(footnotes):
             f'</w:rPr>'
             f'<w:t>{circle}</w:t>'
             f'</w:r>'
-            # 脚注文字
+            # 脚注正文（正常字号，不上标）
             f'<w:r>'
             f'<w:rPr><w:sz w:val="18"/>'
             f'<w:rFonts w:eastAsia="宋体" w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>'
             f'</w:rPr>'
-            f'<w:t xml:space="preserve">　{safe_text}</w:t>'
+            f'<w:t xml:space="preserve">{safe_text}</w:t>'
             f'</w:r>'
             f'</w:p>'
             f'</w:footnote>'
