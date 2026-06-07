@@ -26,7 +26,6 @@ Thumbs.db
 *.swo
 
 # Project docs (local only)
-dev-notes.md
 hithesis-format-spec.md
 AGENTS.md
 

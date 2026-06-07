@@ -155,6 +155,16 @@ tbl.set_cell(0, 1, "数值", bold=True)
 # 图片（自动编号，居中）
 doc.add_figure("image.png", caption="实验结果对比", width=Cm(10), ref="fig_result")
 
+# 子图（并排或网格布局，自动编号 a/b/c）
+doc.add_subfigure(
+    [("img1.png", "工况1"), ("img2.png", "工况2")],
+    caption="不同工况对比", ref="fig_compare"
+)
+doc.add_subfigure(
+    [("img1.png", "A"), ("img2.png", "B"), ("img3.png", "C"), ("img4.png", "D")],
+    caption="四组实验结果", ref="fig_grid", cols=2  # 2x2网格
+)
+
 # 公式（无边框表格，编号右对齐）
 doc.add_equation(r"\frac{\partial p}{\partial x} = 0", label="2-1", ref="eq_ns")
 
@@ -354,8 +364,6 @@ python examples/thesis_split/thesis_main.py
 - 硕博封面（暂时用本科封面替代）
 - 深圳、威海校区适配
 - 中英双语图题/表题（博士要求）
-- 子图（并排图、子图编号 a/b）
-- 长表格（续表，跨页重复表头）
 - 算法伪代码（行号+关键词着色）
 - 开题/中期报告
 - 英文目录
