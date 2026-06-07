@@ -113,15 +113,22 @@ def _build_footnotes_xml(footnotes):
 
     for fn_id, text in footnotes:
         safe_text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        circle = CIRCLE[fn_id - 1] if fn_id <= 9 else f'[{fn_id}]'
 
         parts.append(
             f'<w:footnote w:id="{fn_id}">'
             f'<w:p>'
             f'<w:pPr><w:spacing w:line="270" w:lineRule="auto"/></w:pPr>'
+            # 静态上标编号（无 footnoteRef，不生成回跳链接）
             f'<w:r>'
-            f'<w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr>'
-            f'<w:footnoteRef/>'
+            f'<w:rPr>'
+            f'<w:sz w:val="18"/>'
+            f'<w:vertAlign w:val="superscript"/>'
+            f'<w:rFonts w:eastAsia="宋体" w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>'
+            f'</w:rPr>'
+            f'<w:t>{circle}</w:t>'
             f'</w:r>'
+            # 脚注文字
             f'<w:r>'
             f'<w:rPr><w:sz w:val="18"/>'
             f'<w:rFonts w:eastAsia="宋体" w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>'
