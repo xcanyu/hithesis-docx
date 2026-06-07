@@ -1,7 +1,6 @@
 """脚注后处理：在正文中插入带超链接的脚注标记，生成 word/footnotes.xml。"""
 
 import os
-import shutil
 import zipfile
 from lxml import etree
 
@@ -16,8 +15,6 @@ CIRCLE = "①②③④⑤⑥⑦⑧⑨"
 def fix_footnotes(filename, footnotes):
     if not footnotes:
         return
-
-    shutil.copy(filename, filename + '.backup.docx')
 
     with zipfile.ZipFile(filename, 'r') as z:
         doc_xml = z.read('word/document.xml')
