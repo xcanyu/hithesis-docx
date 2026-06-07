@@ -68,7 +68,7 @@ def fix_footnotes(filename, footnotes):
 
 
 def _process_body_markers(doc_tree, footnotes):
-    """将正文中的 ① 替换为 w:footnoteReference + ① 文本"""
+    """将正文中的 ① 替换为 w:footnoteReference（Word 原生编号）"""
     circle_map = {CIRCLE[i]: i + 1 for i in range(len(CIRCLE))}
 
     body = doc_tree.find(f'{{{W}}}body')
@@ -79,14 +79,19 @@ def _process_body_markers(doc_tree, footnotes):
                 continue
             fn_id = circle_map[t.text]
 
-            # 插入 w:footnoteReference（Word 原生脚注锚点）
+            # 插入 w:footnoteReference
             ref_run = etree.Element(f'{{{W}}}r')
             ref_rPr = etree.SubElement(ref_run, f'{{{W}}}rPr')
             ref_style = etree.SubElement(ref_rPr, f'{{{W}}}rStyle')
             ref_style.set(f'{{{W}}}val', 'FootnoteReference')
+            ref_sz = etree.SubElement(ref_rPr, f'{{{W}}}sz')
+            ref_sz.set(f'{{{W}}}val', '20')
             fn_ref = etree.SubElement(ref_run, f'{{{W}}}footnoteReference')
             fn_ref.set(f'{{{W}}}id', str(fn_id))
             r.addprevious(ref_run)
+
+            # 删除原始 ① run
+            p.remove(r)
 
 
 def _ensure_footnote_pr(settings_tree):
