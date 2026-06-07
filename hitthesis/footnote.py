@@ -52,6 +52,7 @@ def fix_footnotes(filename, footnotes):
     modified_rels = etree.tostring(rels_tree, xml_declaration=True, encoding='UTF-8', standalone=True)
     modified_settings = etree.tostring(settings_tree, xml_declaration=True, encoding='UTF-8', standalone=True)
 
+    footnotes_written = False
     with zipfile.ZipFile(filename, 'r') as zin:
         with zipfile.ZipFile(filename + '.tmp', 'w', zipfile.ZIP_DEFLATED) as zout:
             for item in zin.infolist():
@@ -66,8 +67,11 @@ def fix_footnotes(filename, footnotes):
                     zout.writestr(item.filename, modified_ct)
                 elif item.filename == 'word/footnotes.xml':
                     zout.writestr(item.filename, footnotes_xml)
+                    footnotes_written = True
                 else:
                     zout.writestr(item, zin.read(item.filename))
+            if not footnotes_written:
+                zout.writestr('word/footnotes.xml', footnotes_xml)
 
     os.replace(filename + '.tmp', filename)
 
