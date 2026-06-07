@@ -23,12 +23,9 @@ hitthesis-docx: 哈工大学位论文Word文档生成工具
     doc.compile("thesis.docx")
 """
 
-from .document import (
-    Thesis,
-    ChapterContext,
-    Figure,
-    Table,
-)
+from .document import Thesis
+from .contexts import ChapterContext
+from .elements import Figure, Table, SubFigure
 from .ooxml_utils import set_font
 from .reference_db import ReferenceDB
 
@@ -38,6 +35,7 @@ __all__ = [
     "ChapterContext",
     "Figure",
     "Table",
+    "SubFigure",
     "set_font",
     "ReferenceDB",
 ]
