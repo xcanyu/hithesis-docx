@@ -11,7 +11,7 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 import copy
-from .config import PAGE, UNIVERSITY_NAME, COVER_TITLES, SPACING, HEADING_FONTS
+from .config import PAGE, UNIVERSITY_NAME, SPACING
 from .ooxml_utils import (
     set_font,
     set_paragraph_border,
@@ -1036,7 +1036,7 @@ class Thesis:
             rFonts.set(qn('w:hAnsi'), 'Consolas')
             rFonts.set(qn('w:eastAsia'), 'Consolas')
 
-    def add_equation(self, formula=None, label=None, ref=None):
+    def add_equation(self, formula, label=None, ref=None):
         """插入公式（无边框表格，居中，1.5倍行距）
 
         Args:

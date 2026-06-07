@@ -56,7 +56,7 @@ def compile_document(doc, filename, thesis_type=None, toc_blank_line=False, foot
             print(f"Word更新域失败: {e}")
         shutil.copy(raw, filename)
     else:
-        print("自动更新目录仅支持Windows")
+        print("提示：macOS/Linux 下需手动更新目录。打开文档后按 Ctrl+A → F9 → 更新整个目录")
         shutil.copy(raw, filename)
 
     # TOC 字体修复

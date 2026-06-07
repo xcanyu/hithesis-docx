@@ -71,25 +71,27 @@ class ReferenceDB:
         if number:
             vol_part += f"({number})"
 
-        # 构建页码部分
-        page_part = f": {pages}" if pages else ""
-
         # 组装各部分
         parts = []
         if authors:
-            parts.append(authors + ". ")  # 作者后加句点和空格
+            parts.append(authors + ".")
         if title:
-            parts.append(title + "[J]. ")  # 标题后加标识和句点空格
+            parts.append(title + "[J].")
+        # 刊名, 年, 卷(期): 页码 — 用逗号连接中间部分，最后加句点
+        mid = []
         if journal:
-            parts.append(f"{journal}, ")  # 刊名后逗号空格
+            mid.append(journal)
         if year:
-            parts.append(f"{year}, ")  # 年份后逗号空格
+            mid.append(year)
         if vol_part:
-            parts.append(f"{vol_part}")  # 卷号紧跟
-        if page_part:
-            parts.append(f"{page_part}.")  # 页码前冒号空格，后句点
-        elif vol_part:
-            parts.append(".")  # 只有卷号时以句点结尾
+            vol_str = vol_part
+            if pages:
+                vol_str += f": {pages}"
+            mid.append(vol_str)
+        elif pages:
+            mid.append(pages)
+        if mid:
+            parts.append(", ".join(mid) + ".")
 
         result = "".join(parts)
         if not result.endswith("."):

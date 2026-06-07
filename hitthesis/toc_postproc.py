@@ -8,7 +8,6 @@ TOC 后处理
 
 import zipfile
 import os
-import shutil
 from lxml import etree
 
 W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
@@ -210,8 +209,6 @@ def fix_toc_fonts(filename, thesis_type=None, toc_blank_line=False):
     Returns:
         int: 修改的 run 数量
     """
-    shutil.copy(filename, filename + '.backup.docx')
-
     with zipfile.ZipFile(filename, 'r') as z:
         doc_xml = z.read('word/document.xml')
 

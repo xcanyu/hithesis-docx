@@ -47,14 +47,17 @@ def add_cover(doc, info: dict, thesis_type: str, english_title: str = None):
 
     # 英文标题
     if english_title is None:
-        english_title = "RESEARCH ON KEY TECHNOLOGIES OF PARTIAL POROUS EXTERNALLY PRESSURIZED GAS BEARING"
-    text_area_width = 425.2 * 0.9
-    W_22 = estimate_text_width(english_title, 22)
-    W_18 = estimate_text_width(english_title, 18)
-    if W_22 <= text_area_width:
-        en_font_size = 22
-    elif W_18 > 425.2:
-        en_font_size = 18
+        english_title = info.get("english_title", "")
+    if english_title:
+        text_area_width = 425.2 * 0.9
+        W_22 = estimate_text_width(english_title, 22)
+        W_18 = estimate_text_width(english_title, 18)
+        if W_22 <= text_area_width:
+            en_font_size = 22
+        elif W_18 > 425.2:
+            en_font_size = 18
+        else:
+            en_font_size = 22
     else:
         en_font_size = 22
 
