@@ -135,15 +135,13 @@ def _ensure_footnote_pr(settings_tree):
 
 
 def _build_footnotes_xml(footnotes):
-    """生成 word/footnotes.xml：显式书签 + 回跳超链接"""
+    """生成 word/footnotes.xml（单向跳转：正文→脚注）"""
     parts = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>']
     parts.append(f'<w:footnotes xmlns:w="{W}" xmlns:r="{R}">')
 
-    # 分隔线
     parts.append('<w:footnote w:type="separator" w:id="-1">'
                  '<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/>'
                  '</w:pPr><w:r><w:separator/></w:r></w:p></w:footnote>')
-    # 延续分隔线
     parts.append('<w:footnote w:type="continuationSeparator" w:id="0">'
                  '<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/>'
                  '</w:pPr><w:r><w:continuationSeparator/></w:r></w:p></w:footnote>')
@@ -157,24 +155,17 @@ def _build_footnotes_xml(footnotes):
             f'<w:footnote w:id="{fn_id}">'
             f'<w:p>'
             f'<w:pPr><w:spacing w:line="270" w:lineRule="auto"/></w:pPr>'
-            # 脚注书签（正文跳转目标）
+            # 书签（正文 hyperlink 的跳转目标）
             f'<w:bookmarkStart w:id="{bm_id}" w:name="_ftn{fn_id}"/>'
             f'<w:bookmarkEnd w:id="{bm_id}"/>'
-            # 回跳超链接（脚注→正文）
-            f'<w:hyperlink w:anchor="_ftnref{fn_id}" w:history="1">'
+            # 上标编号 ①
             f'<w:r>'
             f'<w:rPr>'
-            f'<w:rStyle w:val="FootnoteReference"/>'
             f'<w:sz w:val="18"/>'
+            f'<w:vertAlign w:val="superscript"/>'
             f'<w:rFonts w:eastAsia="宋体" w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>'
             f'</w:rPr>'
-            f'<w:t xml:space="preserve">{circle}</w:t>'
-            f'</w:r>'
-            f'</w:hyperlink>'
-            # 空格（5号宽）
-            f'<w:r>'
-            f'<w:rPr><w:sz w:val="21"/><w:rFonts w:eastAsia="宋体"/></w:rPr>'
-            f'<w:t xml:space="preserve">　</w:t>'
+            f'<w:t>{circle}</w:t>'
             f'</w:r>'
             # 脚注文字
             f'<w:r>'
