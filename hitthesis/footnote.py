@@ -1,5 +1,4 @@
-"""脚注后处理：在正文中插入 w:footnoteReference，生成 word/footnotes.xml。
-Word 原生处理双向跳转，无需手动超链接/书签。"""
+"""脚注后处理：在正文中插入带超链接的脚注标记，生成 word/footnotes.xml。"""
 
 import os
 import zipfile
@@ -32,13 +31,23 @@ def fix_footnotes(filename, footnotes):
     settings_tree = etree.fromstring(settings_xml, parser)
     ct_tree = etree.fromstring(ct_xml, parser) if ct_xml else None
 
+    # 1. 正文：脚注标记 → w:hyperlink（跳转到脚注）+ w:bookmark（回跳目标）
     _process_body_markers(doc_tree, footnotes)
+
+    # 2. 生成 footnotes.xml（含回跳超链接）
     footnotes_xml = _build_footnotes_xml(footnotes)
+
+    # 3. 修改 rels
     _add_footnote_relationship(rels_tree)
+
+    # 4. 确保 settings.xml 有 footnotePr
     _ensure_footnote_pr(settings_tree)
+
+    # 5. 修改 Content_Types
     if ct_tree is not None:
         _add_footnote_content_type(ct_tree)
 
+    # 6. 写回 ZIP
     modified_doc = etree.tostring(doc_tree, xml_declaration=True, encoding='UTF-8', standalone=True)
     modified_rels = etree.tostring(rels_tree, xml_declaration=True, encoding='UTF-8', standalone=True)
     modified_settings = etree.tostring(settings_tree, xml_declaration=True, encoding='UTF-8', standalone=True)
@@ -68,10 +77,31 @@ def fix_footnotes(filename, footnotes):
 
 
 def _process_body_markers(doc_tree, footnotes):
-    """将正文中的 ① 前插入隐藏 footnoteReference（Word 跳转用），① 保留为可见标记"""
+    """正文标记：① 前加 footnoteReference（定位+原生链接）+ ① 包裹 w:hyperlink（显式超链接）+ 回跳书签"""
     circle_map = {CIRCLE[i]: i + 1 for i in range(len(CIRCLE))}
+    bookmark_id_counter = [100]
 
     body = doc_tree.find(f'{{{W}}}body')
+    for p in body.iter(f'{{{W}}}p'):
+        for r in p.findall(f'{{{W}}}r'):
+            t = r.find(f'{{{W}}}t')
+            if t is None or t.text not in circle_map:
+                continue
+            fn_id = circle_map[t.text]
+            r_idx = list(p).index(r)
+
+            # a) 回跳书签（脚注中 hyperlink 的目标）
+            bm_id = bookmark_id_counter[0]
+            bookmark_id_counter[0] += 2
+            bm_start = etree.Element(f'{{{W}}}bookmarkStart')
+            bm_start.set(f'{{{W}}}id', str(bm_id))
+            bm_start.set(f'{{{W}}}name', f'_ftnref{fn_id}')
+            bm_end = etree.Element(f'{{{W}}}bookmarkEnd')
+            bm_end.set(f'{{{W}}}id', str(bm_id))
+            r.addprevious(bm_start)
+            r.addprevious(bm_end)
+
+    # 第二遍：在 ① run 前插入 footnoteReference（脚注定位），将 ① 包裹在 hyperlink 中
     for p in body.iter(f'{{{W}}}p'):
         for r in list(p.findall(f'{{{W}}}r')):
             t = r.find(f'{{{W}}}t')
@@ -79,7 +109,7 @@ def _process_body_markers(doc_tree, footnotes):
                 continue
             fn_id = circle_map[t.text]
 
-            # 插入隐藏的 w:footnoteReference（1pt，不可见，仅用于 Word 跳转）
+            # footnoteReference：脚注定位锚点（1pt 不可见）
             ref_run = etree.Element(f'{{{W}}}r')
             ref_rPr = etree.SubElement(ref_run, f'{{{W}}}rPr')
             ref_style = etree.SubElement(ref_rPr, f'{{{W}}}rStyle')
@@ -90,6 +120,14 @@ def _process_body_markers(doc_tree, footnotes):
             fn_ref.set(f'{{{W}}}id', str(fn_id))
             r.addprevious(ref_run)
 
+            # 将 ① 包裹在 w:hyperlink 中（可见的可点击超链接）
+            hl = etree.Element(f'{{{W}}}hyperlink')
+            hl.set(f'{{{W}}}anchor', f'_ftn{fn_id}')
+            hl.set(f'{{{W}}}history', '1')
+            p.remove(r)
+            hl.append(r)
+            p.insert(list(p).index(ref_run) + 1, hl)
+
 
 def _ensure_footnote_pr(settings_tree):
     if settings_tree.find(f'{{{W}}}footnotePr') is None:
@@ -97,17 +135,20 @@ def _ensure_footnote_pr(settings_tree):
 
 
 def _build_footnotes_xml(footnotes):
-    """生成 word/footnotes.xml"""
+    """生成 word/footnotes.xml：显式书签 + 回跳超链接"""
     parts = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>']
     parts.append(f'<w:footnotes xmlns:w="{W}" xmlns:r="{R}">')
 
+    # 分隔线
     parts.append('<w:footnote w:type="separator" w:id="-1">'
                  '<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/>'
                  '</w:pPr><w:r><w:separator/></w:r></w:p></w:footnote>')
+    # 延续分隔线
     parts.append('<w:footnote w:type="continuationSeparator" w:id="0">'
                  '<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/>'
                  '</w:pPr><w:r><w:continuationSeparator/></w:r></w:p></w:footnote>')
 
+    bm_id = 200
     for fn_id, text in footnotes:
         safe_text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
         circle = CIRCLE[fn_id - 1] if fn_id <= 9 else f'[{fn_id}]'
@@ -116,18 +157,29 @@ def _build_footnotes_xml(footnotes):
             f'<w:footnote w:id="{fn_id}">'
             f'<w:p>'
             f'<w:pPr><w:spacing w:line="270" w:lineRule="auto"/></w:pPr>'
-            # 上标编号 ①
+            # 脚注书签（正文跳转目标）
+            f'<w:bookmarkStart w:id="{bm_id}" w:name="_ftn{fn_id}"/>'
+            f'<w:bookmarkEnd w:id="{bm_id}"/>'
+            # 回跳超链接（脚注→正文）
+            f'<w:hyperlink w:anchor="_ftnref{fn_id}" w:history="1">'
+            f'<w:r>'
+            f'<w:rPr>'
+            f'<w:rStyle w:val="FootnoteReference"/>'
+            f'<w:sz w:val="18"/>'
+            f'<w:rFonts w:eastAsia="宋体" w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>'
+            f'</w:rPr>'
+            f'<w:t xml:space="preserve">{circle}</w:t>'
+            f'</w:r>'
+            f'</w:hyperlink>'
+            # 空格（5号宽）
+            f'<w:r>'
+            f'<w:rPr><w:sz w:val="21"/><w:rFonts w:eastAsia="宋体"/></w:rPr>'
+            f'<w:t xml:space="preserve">　</w:t>'
+            f'</w:r>'
+            # 脚注文字
             f'<w:r>'
             f'<w:rPr>'
             f'<w:sz w:val="18"/>'
-            f'<w:vertAlign w:val="superscript"/>'
-            f'<w:rFonts w:eastAsia="宋体" w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>'
-            f'</w:rPr>'
-            f'<w:t>{circle}</w:t>'
-            f'</w:r>'
-            # 脚注正文（正常字号，不上标）
-            f'<w:r>'
-            f'<w:rPr><w:sz w:val="18"/>'
             f'<w:rFonts w:eastAsia="宋体" w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>'
             f'</w:rPr>'
             f'<w:t xml:space="preserve">{safe_text}</w:t>'
@@ -135,6 +187,7 @@ def _build_footnotes_xml(footnotes):
             f'</w:p>'
             f'</w:footnote>'
         )
+        bm_id += 2
 
     parts.append('</w:footnotes>')
     return '\n'.join(parts).encode('utf-8')
