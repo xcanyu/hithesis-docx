@@ -45,6 +45,7 @@ from hitthesis import Thesis
 doc = Thesis(type="bachelor", campus="harbin")  # type: bachelor|master|doctor, campus: harbin
 doc.set_info(
     title="局部多孔质气体静压轴承关键技术的研究",
+    english_title="RESEARCH ON KEY TECHNOLOGIES OF PARTIAL POROUS EXTERNALLY PRESSURIZED GAS BEARING",
     author="于冬梅",
     supervisor="某某某教授",
     subject="机械制造及其自动化",
@@ -94,6 +95,7 @@ doc = Thesis(type="bachelor", campus="harbin")
 
 doc.set_info(
     title="论文标题",          # 必填
+    english_title="ENGLISH TITLE",  # 英文标题（封面用，可选）
     author="作者姓名",        # 必填
     supervisor="导师姓名",    # 必填
     subject="学科专业",
@@ -317,8 +319,10 @@ def build(doc):
 hithesis-docx/
 ├── hitthesis/                  # 核心库
 │   ├── __init__.py             # 公开 API
-│   ├── config.py               # 格式常量
+│   ├── config.py               # 格式常量（PAGE, SPACING, UNIVERSITY_NAME）
 │   ├── document.py             # Thesis 主类
+│   ├── elements.py             # 文档元素（Table, Figure, SubFigure）
+│   ├── contexts.py             # 上下文管理器（ChapterContext, AppendixContext）
 │   ├── ooxml_utils.py          # OOXML 原子操作
 │   ├── cover.py                # 封面
 │   ├── authorization.py        # 授权声明页（本科/硕博双版本）
@@ -358,6 +362,7 @@ python examples/thesis_split/thesis_main.py
 - **空白页 Bug**：TOC 域展开后，目录与第一章之间可能出现多余空白页。
 - **公式字体**：OMML 公式字体由 Word 内部管理，暂不支持强制设置为 Times New Roman。
 - **WPS 兼容性**：字间距（`w:spacing`）在 Word 和 WPS 下渲染效果有差异，以 Word 为准。
+- **脚注按页计数**：当前全文连续计数（①②③），未按页重置（python-docx 生成阶段无法获知页码）。
 
 ## 未实现
 
@@ -378,6 +383,7 @@ python examples/thesis_split/thesis_main.py
 
 - **目录更新**：生成的目录是 Word TOC 域代码。Windows 下编译时自动更新；macOS / Linux 下首次打开文档后需手动更新（`Ctrl+A` → `F9` → "更新整个目录"）
 - **仅限 Windows**：Word COM 接口仅在 Windows 下可用
+- **编译中间文件**：编译过程生成 `_raw.docx`（TOC 更新前的原始文件），自动 gitignored
 
 ## 致谢
 
