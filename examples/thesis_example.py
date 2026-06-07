@@ -42,6 +42,7 @@ def main():
     # ================================================================
     doc.set_info(
         title="局部多孔质气体静压轴承关键技术的研究",  # 必填
+        english_title="RESEARCH ON KEY TECHNOLOGIES OF PARTIAL POROUS EXTERNALLY PRESSURIZED GAS BEARING",
         author="于冬梅",                                # 必填
         supervisor="某某某教授",                         # 必填
         subject="机械制造及其自动化",                    # 学科专业（封面用）
