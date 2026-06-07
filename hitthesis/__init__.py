@@ -26,10 +26,8 @@ hitthesis-docx: 哈工大学位论文Word文档生成工具
 from .document import (
     Thesis,
     ChapterContext,
-    SectionContext,
     Figure,
     Table,
-    Equation,
 )
 from .ooxml_utils import set_font
 from .reference_db import ReferenceDB
@@ -38,10 +36,8 @@ __version__ = "0.1.0"
 __all__ = [
     "Thesis",
     "ChapterContext",
-    "SectionContext",
     "Figure",
     "Table",
-    "Equation",
     "set_font",
     "ReferenceDB",
 ]

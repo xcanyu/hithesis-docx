@@ -269,32 +269,11 @@ def add_spacer(doc, height_pt):
 # ============================================================================
 
 def make_heading_para(doc, text, font_cn='黑体', font_size=18, bold=False):
-    """创建一级标题段落（章/附录共用）"""
-    from .config import SPACING
+    """创建一级标题段落（章/附录共用），复用 apply_heading_style"""
     para = doc.add_paragraph()
-    pPr = para._element.get_or_add_pPr()
-    pPr.append(OxmlElement('w:pageBreakBefore'))
-    for tag in ['w:jc', 'w:spacing', 'w:keepNext', 'w:keepLines', 'w:snapToGrid']:
-        old = pPr.find(qn(tag))
-        if old is not None:
-            pPr.remove(old)
-    jc = OxmlElement('w:jc')
-    jc.set(qn('w:val'), 'center')
-    pPr.append(jc)
-    spacing = OxmlElement('w:spacing')
-    spacing.set(qn('w:before'), str(SPACING["heading_before"]))
-    spacing.set(qn('w:after'), str(SPACING["heading_after"]))
-    spacing.set(qn('w:line'), str(SPACING["heading_line"]))
-    spacing.set(qn('w:lineRule'), 'auto')
-    pPr.append(spacing)
-    pPr.append(OxmlElement('w:keepNext'))
-    pPr.append(OxmlElement('w:keepLines'))
-    sg = OxmlElement('w:snapToGrid')
-    sg.set(qn('w:val'), '0')
-    pPr.append(sg)
-    outlineLvl = OxmlElement('w:outlineLvl')
-    outlineLvl.set(qn('w:val'), '0')
-    pPr.append(outlineLvl)
+    add_page_break_before(para)
+    apply_heading_style(para)
+    set_outline_level(para, 0)
     run = para.add_run(text)
     set_font(run, font_cn, font_size, bold)
     return para
@@ -303,6 +282,24 @@ def make_heading_para(doc, text, font_cn='黑体', font_size=18, bold=False):
 # ============================================================================
 # 书签
 # ============================================================================
+
+def add_caption_with_bookmark(para, ref, text, font_cn="宋体", font_size=10.5):
+    """添加带书签的题注文本（图/表/代码/子图共用）"""
+    if ref:
+        bm_start = OxmlElement('w:bookmarkStart')
+        bm_start.set(qn('w:id'), '0')
+        bm_start.set(qn('w:name'), f"cite_{ref}")
+        para._element.append(bm_start)
+        run = para.add_run(text)
+        set_font(run, font_cn, font_size)
+        bm_end = OxmlElement('w:bookmarkEnd')
+        bm_end.set(qn('w:id'), '0')
+        bm_end.set(qn('w:name'), f"cite_{ref}")
+        para._element.append(bm_end)
+    else:
+        run = para.add_run(text)
+        set_font(run, font_cn, font_size)
+
 
 def add_bookmark(para_element, name):
     """在段落 XML 元素中添加书签（起止标记）"""

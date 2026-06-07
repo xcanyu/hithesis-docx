@@ -4,7 +4,7 @@
 """
 
 from docx import Document
-from docx.shared import Pt, Cm, RGBColor
+from docx.shared import Pt, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
 from docx.enum.section import WD_SECTION
 from docx.enum.table import WD_TABLE_ALIGNMENT, WD_ROW_HEIGHT_RULE
@@ -13,17 +13,16 @@ from docx.oxml import OxmlElement
 import copy
 from .config import PAGE, UNIVERSITY_NAME, COVER_TITLES, SPACING, HEADING_FONTS
 from .ooxml_utils import (
-    set_font, estimate_text_width, set_cell_vertical_alignment,
-    set_paragraph_border, remove_table_borders, set_cell_bottom_border,
+    set_font, set_cell_vertical_alignment,
+    set_paragraph_border,
     set_outline_level, add_page_break_before, apply_heading_style,
     add_heading_properties, set_first_line_indent,
     add_bookmark, add_bookmark_to_paragraph,
     add_ref_hyperlink, add_hyperlink_run, add_ref_runs_merged,
     render_normal_text_with_superscripts, make_heading_para,
-    add_signature_line, disable_snap_to_grid, add_spacer,
+    disable_snap_to_grid,
     set_hanging_indent,
-    make_tbl_borders_none, apply_tc_borders, clear_cell_margins,
-    make_border_element,
+    add_caption_with_bookmark,
 )
 from .latex_render import (
     add_latex_to_paragraph,
@@ -36,7 +35,7 @@ from .compile import compile_document
 class Thesis:
     """学位论文文档构建器（当前仅实现本科/本部，硕博/其他校区预留）"""
 
-    def __init__(self, type="bachelor", campus="harbin", title="", author="", supervisor="", header_text=None):
+    def __init__(self, type="bachelor", campus="harbin", header_text=None):
         self.doc = Document()
         self.type = type
         self.campus = campus
@@ -59,9 +58,9 @@ class Thesis:
         self._code_counter = 0  # 代码块计数器
         self._thm_counter = 0  # 定理论引理计数器
         self.info = {
-            "title": title,
-            "author": author,
-            "supervisor": supervisor,
+            "title": "",
+            "author": "",
+            "supervisor": "",
             "subject": "",
             "affil": "",
             "date": "",
@@ -339,12 +338,7 @@ class Thesis:
             text = text.strip()
             if not text:
                 continue
-            para = self.doc.add_paragraph()
-            para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-            para.paragraph_format.line_spacing = Pt(20.5)
-            para.paragraph_format.space_before = Pt(0)
-            para.paragraph_format.space_after = Pt(0)
-            set_first_line_indent(para, SPACING["first_line_indent"])
+            para = self._make_body_para()
             self._add_text_with_superscripts(para, text)
 
         if keywords:
@@ -374,12 +368,7 @@ class Thesis:
             text = text.strip()
             if not text:
                 continue
-            para = self.doc.add_paragraph()
-            para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-            para.paragraph_format.line_spacing = Pt(20.5)
-            para.paragraph_format.space_before = Pt(0)
-            para.paragraph_format.space_after = Pt(0)
-            set_first_line_indent(para, SPACING["first_line_indent"])
+            para = self._make_body_para()
             run = para.add_run(text)
             set_font(run, "Times New Roman", 12)
 
@@ -450,7 +439,6 @@ class Thesis:
         apply_heading_style(para)
         run = para.add_run("目　录")
         set_font(run, "黑体", 18, False)
-        set_outline_level(para, 0)  # 添加 outline level 以出现在导航栏
 
         # TOC 域
         para = self.doc.add_paragraph()
@@ -482,190 +470,14 @@ class Thesis:
         """
         para, formatted_title = self._create_heading_para(title, auto_space=auto_space)
         if intro:
-            para_intro = self.doc.add_paragraph()
-            para_intro.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-            para_intro.paragraph_format.line_spacing = Pt(SPACING["body_line_spacing"])
-            para_intro.paragraph_format.space_before = Pt(0)
-            para_intro.paragraph_format.space_after = Pt(0)
-            set_first_line_indent(para_intro, SPACING["first_line_indent"])
+            para_intro = self._make_body_para()
             self._add_text_with_superscripts(para_intro, intro)
         if content:
             for i, text in enumerate(content):
-                para2 = self.doc.add_paragraph()
-                para2.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-                para2.paragraph_format.line_spacing = Pt(SPACING["body_line_spacing"])
-                para2.paragraph_format.space_before = Pt(0)
-                para2.paragraph_format.space_after = Pt(0)
-                set_first_line_indent(para2, SPACING["first_line_indent"])
+                para2 = self._make_body_para()
                 disable_snap_to_grid(para2)
                 prefix = f"（{i + 1}）"
                 self._add_text_with_superscripts(para2, f"{prefix}{text}")
-
-    def _add_authorization_old_garbage(self):  # deleted, keeping for reference
-        pPr1 = para1._element.get_or_add_pPr()
-        pb1 = OxmlElement('w:pageBreakBefore')
-        pPr1.append(pb1)
-        for tag in ['w:jc', 'w:spacing', 'w:keepNext', 'w:keepLines', 'w:snapToGrid']:
-            old = pPr1.find(qn(tag))
-            if old is not None:
-                pPr1.remove(old)
-        jc1 = OxmlElement('w:jc')
-        jc1.set(qn('w:val'), 'center')
-        pPr1.append(jc1)
-        spacing1 = OxmlElement('w:spacing')
-        spacing1.set(qn('w:before'), '310')  # 减小0.3cm（约170twips）
-        spacing1.set(qn('w:after'), '0')    # 段后不设间距，由第二行段前控制
-        pPr1.append(spacing1)
-        pPr1.append(OxmlElement('w:keepNext'))
-        pPr1.append(OxmlElement('w:keepLines'))
-        sg1 = OxmlElement('w:snapToGrid')
-        sg1.set(qn('w:val'), '0')
-        pPr1.append(sg1)
-        # 注意：不设置outlineLvl，让TC字段控制目录条目
-        run1 = para1.add_run('哈尔滨工业大学本科毕业论文（设计）')
-        set_font(run1, '黑体', 22, True)  # 小二约22pt
-
-        # 第二排：原创性声明和使用权限
-        para2 = self.doc.add_paragraph()
-        para2.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        para2.paragraph_format.line_spacing = Pt(20.5)
-        para2.paragraph_format.space_before = Pt(6)  # 段前微调，替代第一排段后
-        para2.paragraph_format.space_after = Pt(12)  # 段后空一行
-        run2 = para2.add_run('原创性声明和使用权限')
-        set_font(run2, '黑体', 22, True)  # 小二
-
-        # 第三排：本科毕业论文（设计）原创性声明
-        para3 = self.doc.add_paragraph()
-        para3.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        para3.paragraph_format.line_spacing = Pt(20.5)
-        para3.paragraph_format.space_before = Pt(21)  # 段前空1行+0.3cm，与上排间距约0.9cm
-        para3.paragraph_format.space_after = Pt(12)
-        run3 = para3.add_run('本科毕业论文（设计）原创性声明')
-        set_font(run3, '黑体', 15, True)  # 小三约15pt
-
-        # 正文内容（宋体12.5pt，首行缩进2字符）
-        title = self.info.get("title", "（论文题目）")
-        content_text = (
-            f'本人郑重声明：此处所提交的本科毕业论文（设计）《{title}》，是本人在导师指导下，'
-            f'在哈尔滨工业大学攻读学士学位期间独立进行研究工作所取得的成果，且毕业论文（设计）'
-            f'中除已标注引用文献的部分外不包含他人完成或已发表的研究成果。对本毕业论文（设计）'
-            f'的研究工作做出重要贡献的个人和集体，均已在文中以明确方式注明。'
-        )
-        para3 = self.doc.add_paragraph()
-        para3.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-        para3.paragraph_format.line_spacing = Pt(20.5)
-        para3.paragraph_format.space_before = Pt(0)
-        para3.paragraph_format.space_after = Pt(0)
-        set_first_line_indent(para3, 480)  # 2字符缩进
-        run3 = para3.add_run(content_text)
-        set_font(run3, '宋体', 12.5)
-
-        # 签名行（右对齐，宋体12pt）
-        para_sign = self.doc.add_paragraph()
-        para_sign.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        para_sign.paragraph_format.line_spacing = Pt(20.5)
-        para_sign.paragraph_format.space_before = Pt(14)
-        add_signature_line(para_sign, '作者签名：', 114)
-
-        # 本科毕业论文（设计）使用权限（小三星体加粗居中，段前空2cm）
-        para4 = self.doc.add_paragraph()
-        para4.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        para4.paragraph_format.line_spacing = Pt(24)  # 15pt字配24pt行距，给足空间
-        para4.paragraph_format.space_before = Pt(56.7)  # 2cm
-        para4.paragraph_format.space_after = Pt(12)
-        sg = OxmlElement('w:snapToGrid')
-        sg.set(qn('w:val'), '0')
-        para4._element.get_or_add_pPr().append(sg)
-        run4 = para4.add_run('本科毕业论文（设计）使用权限')
-        set_font(run4, '黑体', 15, True)  # 小三
-
-        # 使用权限正文（宋体12.5pt，首行缩进2字符）
-        # 第一段
-        para5 = self.doc.add_paragraph()
-        para5.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-        para5.paragraph_format.line_spacing = Pt(20.5)
-        para5.paragraph_format.space_before = Pt(0)
-        para5.paragraph_format.space_after = Pt(0)
-        set_first_line_indent(para5, 480)  # 2字符缩进
-        run5 = para5.add_run(
-            '本科毕业论文（设计）是本科生在哈尔滨工业大学攻读学士学位期间完成的成果，'
-            '知识产权归属哈尔滨工业大学。本科毕业论文（设计）的使用权限如下：'
-        )
-        set_font(run5, '宋体', 12.5)
-
-        # 条款正文：每个排独立段落 + 指定对齐/字间距
-        line_data = [
-            ('（1）学校可以采用影印、缩印或其他复制手段保存本科生上交的毕业论文', WD_ALIGN_PARAGRAPH.LEFT, 6, True),    # 第1排
-            ('（设计），并向有关部门报送本科毕业论文（设计）；（2）根据需要，学校可', WD_ALIGN_PARAGRAPH.LEFT, 6, False),   # 第2排
-            ('本科毕业论文（设计）部分或全部内容编入有关数据库进行检索和提供相应阅', WD_ALIGN_PARAGRAPH.JUSTIFY, 10, False), # 第3排 两端对齐+更大字间距
-            ('览服务；（3）本科生毕业后发表与此毕业论文（设计）研究成果相关的学术论', WD_ALIGN_PARAGRAPH.LEFT, 6, False),   # 第4排
-            ('文和其他成果时，应征得导师同意，且第一署名单位为哈尔滨工业大学。', WD_ALIGN_PARAGRAPH.LEFT, 6, False),   # 第5排
-        ]
-        for text, align, spacing, is_first in line_data:
-            p = self.doc.add_paragraph()
-            p.alignment = align
-            p.paragraph_format.line_spacing = Pt(20.5)
-            p.paragraph_format.space_before = Pt(0)
-            p.paragraph_format.space_after = Pt(0)
-            if is_first:
-                set_first_line_indent(p, 480)
-            run = p.add_run(text)
-            set_font(run, '宋体', 12)
-            rPr = run._element.get_or_add_rPr()
-            sp = rPr.find(qn('w:spacing'))
-            if sp is None:
-                sp = OxmlElement('w:spacing')
-                rPr.append(sp)
-            sp.set(qn('w:val'), str(spacing))
-
-        # 保密段落
-        para7 = self.doc.add_paragraph()
-        para7.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-        para7.paragraph_format.line_spacing = Pt(20.5)
-        para7.paragraph_format.space_before = Pt(0)
-        para7.paragraph_format.space_after = Pt(0)
-        set_first_line_indent(para7, 480)
-        run7 = para7.add_run('保密论文在保密期内遵守有关保密规定，解密后适用于此使用权限规定。')
-        set_font(run7, '宋体', 12.5)
-
-        # 本人知悉段落
-        para8 = self.doc.add_paragraph()
-        para8.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-        para8.paragraph_format.line_spacing = Pt(20.5)
-        para8.paragraph_format.space_before = Pt(0)
-        para8.paragraph_format.space_after = Pt(0)
-        set_first_line_indent(para8, 480)
-        run8 = para8.add_run('本人知悉本科毕业论文（设计）的使用权限，并将遵守有关规定。')
-        set_font(run8, '宋体', 12.5)
-
-        # 作者签名（段前约1cm）
-        para_auth_sign = self.doc.add_paragraph()
-        para_auth_sign.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        para_auth_sign.paragraph_format.line_spacing = Pt(20.5)
-        para_auth_sign.paragraph_format.space_before = Pt(23)  # 约1cm
-        para_auth_sign.paragraph_format.space_after = Pt(0)
-        add_signature_line(para_auth_sign, '作者签名：', 114)
-
-        # 导师签名（段前约0.7cm）
-        para_sup_sign = self.doc.add_paragraph()
-        para_sup_sign.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        para_sup_sign.paragraph_format.line_spacing = Pt(20.5)
-        para_sup_sign.paragraph_format.space_before = Pt(17)  # 约0.7cm
-        para_sup_sign.paragraph_format.space_after = Pt(0)
-        add_signature_line(para_sup_sign, '导师签名：', 114)
-
-        # 目录条目：隐藏段落 + outlineLvl=0
-        if add_to_toc:
-            hidden_para = self.doc.add_paragraph()
-            set_outline_level(hidden_para, 0)
-            hidden_para.paragraph_format.space_before = Pt(0)
-            hidden_para.paragraph_format.space_after = Pt(0)
-            hidden_para.paragraph_format.line_spacing = 1
-            hidden_run = hidden_para.add_run(
-                '哈尔滨工业大学本科毕业论文（设计）原创性声明和使用权限'
-            )
-            hidden_run.font.size = Pt(1)
-            hidden_run.font.color.rgb = RGBColor(255, 255, 255)
 
     def add_acknowledgements(self, title='致谢', content=None, add_to_toc=True, auto_space=True):
         """添加致谢
@@ -674,12 +486,7 @@ class Thesis:
         para, formatted_title = self._create_heading_para(title, auto_space=auto_space)
         if content:
             for text in content:
-                para2 = self.doc.add_paragraph()
-                para2.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-                para2.paragraph_format.line_spacing = Pt(20.5)
-                para2.paragraph_format.space_before = Pt(0)
-                para2.paragraph_format.space_after = Pt(0)
-                set_first_line_indent(para2, 480)
+                para2 = self._make_body_para()
                 self._add_text_with_superscripts(para2, text)
 
     def add_publications(self, title='攻读博士学位期间发表的论文及其他成果', sections=None, add_to_toc=True, auto_space=True):
@@ -724,11 +531,7 @@ class Thesis:
         para, formatted_title = self._create_heading_para(title, auto_space=auto_space)
         if content:
             for text in content:
-                para2 = self.doc.add_paragraph()
-                para2.paragraph_format.line_spacing = Pt(20.5)
-                para2.paragraph_format.space_before = Pt(0)
-                para2.paragraph_format.space_after = Pt(0)
-                set_first_line_indent(para2, 480)
+                para2 = self._make_body_para()
                 self._add_text_with_superscripts(para2, text)
 
     def add_references(self, bib=None, title='参考文献', add_to_toc=True, references=None):
@@ -951,6 +754,17 @@ class Thesis:
 
 
 
+    def _make_body_para(self, indent=True):
+        """创建标准正文段落：两端对齐、1.3倍行距、段前后为0、可选首行缩进"""
+        para = self.doc.add_paragraph()
+        para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        para.paragraph_format.line_spacing = Pt(SPACING["body_line_spacing"])
+        para.paragraph_format.space_before = Pt(0)
+        para.paragraph_format.space_after = Pt(0)
+        if indent:
+            set_first_line_indent(para, SPACING["first_line_indent"])
+        return para
+
     def add_paragraph(self, text, indent=True, footnote=None):
         """添加正文段落（自动识别[数字]引用并设为上标）
 
@@ -959,13 +773,7 @@ class Thesis:
             indent: 是否首行缩进
             footnote: 可选，脚注文字。自动在段落末尾插入上标标记并在本页底部显示脚注
         """
-        para = self.doc.add_paragraph()
-        para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-        para.paragraph_format.line_spacing = Pt(20.5)
-        para.paragraph_format.space_before = Pt(0)
-        para.paragraph_format.space_after = Pt(0)
-        if indent:
-            set_first_line_indent(para, SPACING["first_line_indent"])
+        para = self._make_body_para(indent=indent)
         self._add_text_with_superscripts(para, text)
         if footnote:
             self._insert_footnote_marker(para, footnote)
@@ -1085,80 +893,6 @@ class Thesis:
 
         self._setup_header_footer_for_section(section)
 
-    def _add_section_break(self, page_number_format=None):
-        """添加分节符（不再设置页码格式，页码由 start_roman_section/start_arabic_section 控制）"""
-        para = self.doc.add_paragraph()
-        run = para.add_run()
-        br = OxmlElement('w:br')
-        br.set(qn('w:type'), 'page')
-        run._r.append(br)
-        return para
-
-    def start_main_matter(self):
-        """切换到正文部分：分节符 + 阿拉伯数字页码（从1开始）
-        设置正文节的属性，前节（摘要等）保持罗马数字格式。
-        """
-        para = self.doc.add_paragraph()
-        run = para.add_run()
-        br = OxmlElement('w:br')
-        br.set(qn('w:type'), 'page')
-        run._r.append(br)
-
-        # 在前一段设置sectPr，控制前节的页码格式（罗马数字已在_setup_header_f
-        # 通过在段落pPr中添加sectPr，python-docx会创建新节
-        body = self.doc.element.body
-        paras = body.findall(qn('w:p'))
-        prev_para = paras[-2] if len(paras) >= 2 else paras[-1]
-
-        pPr = prev_para.find(qn('w:pPr'))
-        if pPr is None:
-            pPr = OxmlElement('w:pPr')
-            prev_para.insert(0, pPr)
-
-        old_sectPr = pPr.find(qn('w:sectPr'))
-        if old_sectPr is not None:
-            pPr.remove(old_sectPr)
-
-        sectPr = OxmlElement('w:sectPr')
-        pPr.append(sectPr)
-
-        # 页宽页高（A4，单位twips: 1cm=567twips）
-        pgSz = OxmlElement('w:pgSz')
-        pgSz.set(qn('w:w'), '11906')  # 210mm
-        pgSz.set(qn('w:h'), '16838')  # 297mm
-        sectPr.append(pgSz)
-
-        # 页边距（对齐官方Word模板）
-        pgMar = OxmlElement('w:pgMar')
-        pgMar.set(qn('w:top'), '2155')     # 38mm
-        pgMar.set(qn('w:right'), '1701')   # 30mm
-        pgMar.set(qn('w:bottom'), '1701')  # 30mm
-        pgMar.set(qn('w:left'), '1701')    # 30mm
-        pgMar.set(qn('w:header'), '1701')  # 30mm
-        pgMar.set(qn('w:footer'), '1304')  # 23mm
-        pgMar.set(qn('w:gutter'), '0')
-        sectPr.append(pgMar)
-
-        # 阿拉伯数字页码，从1开始
-        pgNumType = OxmlElement('w:pgNumType')
-        pgNumType.set(qn('w:val'), '1')
-        sectPr.append(pgNumType)
-
-        # 添加页眉页脚引用
-        doc_part = self.doc.part
-        rels = doc_part.rels
-        header_rid = None
-        footer_rid = None
-        for rel_id, rel in rels.items():
-            if 'footer' in rel.target_ref.lower():
-                footer_rid = rel_id
-
-        if footer_rid:
-            footerRef = OxmlElement('w:footerReference')
-            footerRef.set(qn('w:type'), 'default')
-            footerRef.set(qn('r:id'), footer_rid)
-            sectPr.append(footerRef)
-
     def add_table(self, rows, cols, caption=None, label=None, ref=None):
         """添加三线表（caption在上方，表格自动应用三线表样式）
 
@@ -1263,20 +997,7 @@ class Thesis:
             para.paragraph_format.space_after = Pt(6)
             text = f"代码{ref_num}　{caption}"
 
-            if ref:
-                bm_start = OxmlElement('w:bookmarkStart')
-                bm_start.set(qn('w:id'), '0')
-                bm_start.set(qn('w:name'), f"cite_{ref}")
-                para._element.append(bm_start)
-                run = para.add_run(text)
-                set_font(run, "宋体", 10.5)
-                bm_end = OxmlElement('w:bookmarkEnd')
-                bm_end.set(qn('w:id'), '0')
-                bm_end.set(qn('w:name'), f"cite_{ref}")
-                para._element.append(bm_end)
-            else:
-                run = para.add_run(text)
-                set_font(run, "宋体", 10.5)
+            add_caption_with_bookmark(para, ref, text)
 
         # ── 代码体 ──
         CODE_GRAY = "F5F5F5"
@@ -1588,54 +1309,6 @@ class AppendixContext:
         return False
 
 
-class SectionContext:
-    """小节上下文管理器 - 保留兼容性"""
-
-    def __init__(self, doc, title, level=1):
-        self.doc = doc
-        self.title = title
-        self.level = level
-
-    def __enter__(self):
-        self.doc.add_section(self.title, self.level)
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        return False
-
-
-def _apply_table_three_line_style(tbl):
-        r"""应用三线表样式（booktabs风格）
-        LaTeX模板:
-          \heavyrulewidth=1.5pt → 顶线/底线 = 1.5磅 = w:sz=12
-          \cmidrulewidth=0.5pt  → 中线    = 0.5磅 = w:sz=4
-        仅有顶线、第一条数据行下细线、底线，其余无边框
-        """
-        if not self._table:
-            return
-        tbl = self._table._tbl
-        tblPr = tbl.find(qn('w:tblPr'))
-        if tblPr is None:
-            tblPr = OxmlElement('w:tblPr')
-            tbl.insert(0, tblPr)
-        def make_border(tag, sz, color='000000'):
-            b = OxmlElement(f'w:{tag}')
-            b.set(qn('w:val'), 'single')
-            b.set(qn('w:sz'), str(sz))
-            b.set(qn('w:space'), '0')
-            b.set(qn('w:color'), color)
-            return b
-        # 表格级: 显式设置所有边框为 none（清除Word默认框线）
-        tblBorders = OxmlElement('w:tblBorders')
-        for border_name in ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']:
-            b = OxmlElement(f'w:{border_name}')
-            b.set(qn('w:val'), 'none')
-            b.set(qn('w:sz'), '0')
-            b.set(qn('w:space'), '0')
-            b.set(qn('w:color'), 'auto')
-            tblBorders.append(b)
-
-
 class Table:
     """表格元素 - 三线表"""
 
@@ -1677,25 +1350,7 @@ class Table:
             para.paragraph_format.space_after = Pt(6)
             text = f"表{self.label}　{self.caption}" if self.label else self.caption
 
-            # 添加带书签的文本
-            if self.ref:
-                # 开始书签
-                bm_start = OxmlElement('w:bookmarkStart')
-                bm_start.set(qn('w:id'), '0')
-                bm_start.set(qn('w:name'), f"cite_{self.ref}")
-                para._element.append(bm_start)
-
-                run = para.add_run(text)
-                set_font(run, "宋体", 10.5)
-
-                # 结束书签
-                bm_end = OxmlElement('w:bookmarkEnd')
-                bm_end.set(qn('w:id'), '0')
-                bm_end.set(qn('w:name'), f"cite_{self.ref}")
-                para._element.append(bm_end)
-            else:
-                run = para.add_run(text)
-                set_font(run, "宋体", 10.5)
+            add_caption_with_bookmark(para, self.ref, text)
 
         self._table = self.doc.add_table(rows=self.rows, cols=self.cols)
         self._table.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -1833,23 +1488,7 @@ class Figure:
             para.paragraph_format.space_after = Pt(6)
             text = f"图{self.label}　{self.caption}" if self.label else self.caption
 
-            # 添加带书签的文本
-            if self.ref:
-                bm_start = OxmlElement('w:bookmarkStart')
-                bm_start.set(qn('w:id'), '0')
-                bm_start.set(qn('w:name'), f"cite_{self.ref}")
-                para._element.append(bm_start)
-
-                run = para.add_run(text)
-                set_font(run, "宋体", 10.5)
-
-                bm_end = OxmlElement('w:bookmarkEnd')
-                bm_end.set(qn('w:id'), '0')
-                bm_end.set(qn('w:name'), f"cite_{self.ref}")
-                para._element.append(bm_end)
-            else:
-                run = para.add_run(text)
-                set_font(run, "宋体", 10.5)
+            add_caption_with_bookmark(para, self.ref, text)
 
         return self
 
@@ -1945,101 +1584,10 @@ class SubFigure:
             para.paragraph_format.space_after = Pt(6)
             text = f"图{self.label}　{self.caption}" if self.label else self.caption
 
-            if self.ref:
-                bm_start = OxmlElement('w:bookmarkStart')
-                bm_start.set(qn('w:id'), '0')
-                bm_start.set(qn('w:name'), f"cite_{self.ref}")
-                para._element.append(bm_start)
-
-                run = para.add_run(text)
-                set_font(run, "宋体", 10.5)
-
-                bm_end = OxmlElement('w:bookmarkEnd')
-                bm_end.set(qn('w:id'), '0')
-                bm_end.set(qn('w:name'), f"cite_{self.ref}")
-                para._element.append(bm_end)
-            else:
-                run = para.add_run(text)
-                set_font(run, "宋体", 10.5)
+            add_caption_with_bookmark(para, self.ref, text)
 
         return self
 
 
-class Equation:
-    """公式元素 - 已整合到Thesis.add_equation"""
 
-    def __init__(self, thesis, formula=None, label=None, ref=None):
-        self.thesis = thesis
-        self.formula = formula
-        self.label = label
-        self.ref = ref
-
-    def insert(self):
-        """插入公式"""
-        self.thesis.add_equation(self.formula, self.label, self.ref)
-        return self
-
-
-def _fix_page_numbering(filename):
-    """后处理：修复页码格式（封面无页码，摘要/目录罗马数字，正文阿拉伯从1）"""
-    import zipfile, os
-    from lxml import etree
-
-    ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
-
-    with zipfile.ZipFile(filename, 'r') as z:
-        with z.open('word/document.xml') as f:
-            xml = etree.parse(f)
-        root = xml.getroot()
-
-    body = root.find('w:body', ns)
-    # 收集所有 sectPr：body级 + 段落级
-    body_sectPr = body.find('w:sectPr', ns)
-    paras_with_sectPr = []
-    for p in body.findall('w:p', ns):
-        pPr = p.find('w:pPr', ns)
-        if pPr is not None:
-            sectPr = pPr.find('w:sectPr', ns)
-            if sectPr is not None:
-                paras_with_sectPr.append(sectPr)
-
-    all_sectPr = paras_with_sectPr + ([body_sectPr] if body_sectPr is not None else [])
-
-    if not all_sectPr:
-        return
-
-    # 第一节(封面) : 删除 pgNumType（无页码）
-    first_sect = all_sectPr[0]
-    pgNum = first_sect.find('w:pgNumType', ns)
-    if pgNum is not None:
-        first_sect.remove(pgNum)
-
-    # 如果不止一节，第二节(摘要/目录)设为罗马数字（自动叠加：I, II, III...）
-    if len(all_sectPr) >= 2:
-        second_sect = all_sectPr[1]
-        old = second_sect.find('w:pgNumType', ns)
-        if old is not None:
-            second_sect.remove(old)
-        pgNum = etree.SubElement(second_sect, f'{{{ns["w"]}}}pgNumType')
-        pgNum.set(qn('w:val'), 'I')
-
-    # 最后一节(正文及附录)设为阿拉伯数字从1开始
-    last_sect = all_sectPr[-1]
-    old = last_sect.find('w:pgNumType', ns)
-    if old is not None:
-        last_sect.remove(old)
-    pgNum = etree.SubElement(last_sect, f'{{{ns["w"]}}}pgNumType')
-    pgNum.set(qn('w:val'), '1')
-    pgNum.set(qn('w:start'), '1')
-
-    # 写回文件
-    modified = etree.tostring(root, xml_declaration=True, encoding='UTF-8', standalone=True)
-    with zipfile.ZipFile(filename + '.tmp', 'w', zipfile.ZIP_DEFLATED) as zout:
-        with zipfile.ZipFile(filename, 'r') as zin:
-            for item in zin.infolist():
-                if item.filename == 'word/document.xml':
-                    zout.writestr(item, modified)
-                else:
-                    zout.writestr(item, zin.read(item.filename))
-    os.replace(filename + '.tmp', filename)
 
