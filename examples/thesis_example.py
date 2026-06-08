@@ -27,7 +27,7 @@ def main():
     # 1. 创建文档
     # ================================================================
     # Thesis() 必填参数：
-    #   type="master"          学位类型（当前临时用本科封面，master/doctor 待完善）
+    #   type="bachelor"        学位类型（当前仅实现本科，master/doctor 预留）
     #   campus="harbin"        校区（当前仅实现 harbin，shenzhen/weihai 预留）
     #
     # Thesis() 选填参数：
@@ -45,10 +45,10 @@ def main():
         english_title="RESEARCH ON KEY TECHNOLOGIES OF PARTIAL POROUS EXTERNALLY PRESSURIZED GAS BEARING",
         author="于冬梅",                                # 必填
         supervisor="某某某教授",                         # 必填
-        subject="机械制造及其自动化",                    # 学科专业（封面用）
-        affil="机电工程学院",                           # 院系（封面用）
-        date="2024年6月12日",                            # 日期（封面用）
-        student_id="1234567890",                        # 学号（本科cover2表格用）
+        subject="机械制造及其自动化",                    # 学科专业
+        affil="机电工程学院",                           # 院系
+        date="2024年6月12日",                            # 日期
+        student_id="1234567890",                        # 学号
     )
 
     # ================================================================
@@ -110,7 +110,7 @@ Based on the theoretical analysis, an experimental prototype is designed and fab
     )
 
     # ---- 目录（可选） ----
-    # blank_line_before=True：目录中第一章前空一行（本科生要求）
+    # blank_line_before=True：目录中第一章前空一行
     doc.add_toc(blank_line_before=True)
 
     # ================================================================
@@ -253,8 +253,8 @@ Based on the theoretical analysis, an experimental prototype is designed and fab
         )
 
         # 图片：自动编号"图3-1"，ref 决定引用名
-        doc.add_figure("examples/fig_sample.png", caption="实验结果对比", ref="fig1")
-        doc.add_paragraph("有限元分析结果如图 [cite:fig1] 所示。")
+        doc.add_figure("examples/fig/fig_sample.jpg", caption="砂箱建模图", ref="fig1")
+        doc.add_paragraph("砂箱结构如图 [cite:fig1] 所示。")
 
         doc.add_subsection("轴承基本参数")
         doc.add_paragraph(

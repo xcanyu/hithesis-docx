@@ -30,8 +30,6 @@ from .authorization import add_authorization as _add_authorization
 from .compile import compile_document
 from .elements import Table, Figure, SubFigure
 from .contexts import ChapterContext, AppendixContext
-from .authorization import add_authorization as _add_authorization
-from .compile import compile_document
 
 
 class Thesis:
@@ -778,27 +776,36 @@ class Thesis:
             set_first_line_indent(para, SPACING["first_line_indent"])
         return para
 
-    def add_paragraph(self, text, indent=True, footnote=None):
+    def add_paragraph(self, text, indent=True, footnote=None, footnote_number=None):
         """添加正文段落（自动识别[数字]引用并设为上标）
 
         Args:
             text: 段落文字
             indent: 是否首行缩进
             footnote: 可选，脚注文字。自动在段落末尾插入上标标记并在本页底部显示脚注
+            footnote_number: 可选，自定义脚注序号。None 时使用全局递增序号
         """
         para = self._make_body_para(indent=indent)
         self._add_text_with_superscripts(para, text)
         if footnote:
-            self._insert_footnote_marker(para, footnote)
+            self._insert_footnote_marker(para, footnote, number=footnote_number)
         return para
 
-    def _insert_footnote_marker(self, para, text):
+    def _insert_footnote_marker(self, para, text, number=None):
         """在段落末尾标点符号前插入脚注上标标记。
 
         脚注标记需要插在标点前面（如"研究。①"而非"研究①。"），所以要拆分末尾标点：
         正文文字留在原 run → 标记 run → 标点移到新 run。
+
+        Args:
+            para: 段落对象
+            text: 脚注文字
+            number: 可选，自定义脚注序号。None 时使用全局递增序号
         """
-        idx = len(self._footnotes) + 1
+        if number is None:
+            idx = len(self._footnotes) + 1
+        else:
+            idx = number
         self._footnotes.append((idx, text))
         CIRCLE = "①②③④⑤⑥⑦⑧⑨"
         marker = CIRCLE[idx - 1] if idx <= 9 else f"[{idx}]"
@@ -1177,11 +1184,16 @@ class Thesis:
         return para._element.get_or_add_pPr()
 
 
-    def add_footnote(self, text):
-        """插入脚注标记到上一个段落末尾（向后兼容）"""
+    def add_footnote(self, text, number=None):
+        """插入脚注标记到上一个段落末尾（向后兼容）
+
+        Args:
+            text: 脚注文字
+            number: 可选，自定义脚注序号。None 时使用全局递增序号
+        """
         paras = self.doc.paragraphs
         target_para = paras[-1] if paras else self.doc.add_paragraph()
-        self._insert_footnote_marker(target_para, text)
+        self._insert_footnote_marker(target_para, text, number=number)
 
     def add_page_break(self):
         """手动分页"""

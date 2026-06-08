@@ -6,12 +6,12 @@ def build(doc):
         doc.add_paragraph("本文采用三维建模软件建立了局部多孔质气体静压轴承的几何模型[ref:Chen2019]。")
 
         doc.add_figure(
-            "examples/fig_sample.png",
-            caption="实验结果对比",
+            "examples/fig/fig_sample.jpg",
+            caption="砂箱建模图",
             ref="fig1"
         )
 
-        doc.add_paragraph("有限元分析结果如图 [cite:fig1] 所示。")
+        doc.add_paragraph("砂箱结构如图 [cite:fig1] 所示。")
 
         doc.add_subsection("轴承基本参数")
         doc.add_paragraph("轴承的主要结构参数如下：节流孔直径d=0.3mm，节流孔数n=8，轴承直径D=50mm，轴承宽度B=40mm，气膜间隙h0=0.02mm[ref:Li2018]。")

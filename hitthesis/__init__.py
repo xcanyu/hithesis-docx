@@ -4,7 +4,7 @@ hitthesis-docx: 哈工大学位论文Word文档生成工具
 使用示例:
     from hitthesis import Thesis
 
-    doc = Thesis(type="doctor", campus="harbin")
+    doc = Thesis(type="bachelor", campus="harbin")
     doc.set_info(
         title="局部多孔质气体静压轴承关键技术的研究",
         author="于冬梅",
@@ -17,7 +17,7 @@ hitthesis-docx: 哈工大学位论文Word文档生成工具
     doc.add_toc()
 
     with doc.add_chapter("绪论", "1"):
-        doc.add_section("1.1 研究背景", 1)
+        doc.add_section("研究背景")
         doc.add_paragraph("研究背景内容...")
 
     doc.compile("thesis.docx")

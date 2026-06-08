@@ -66,6 +66,11 @@ class ReferenceDB:
         number = entry.get("number", "")
         pages = entry.get("pages", "")
 
+        # 判断是否中文文献
+        is_cn = self._is_chinese(title) or self._is_chinese(journal)
+        sep = "，" if is_cn else ", "
+        colon = "：" if is_cn else ": "
+
         # 构建卷号(期号)
         vol_part = volume
         if number:
@@ -86,12 +91,12 @@ class ReferenceDB:
         if vol_part:
             vol_str = vol_part
             if pages:
-                vol_str += f": {pages}"
+                vol_str += f"{colon}{pages}"
             mid.append(vol_str)
         elif pages:
             mid.append(pages)
         if mid:
-            parts.append(", ".join(mid) + ".")
+            parts.append(sep.join(mid) + ".")
 
         result = "".join(parts)
         if not result.endswith("."):
@@ -109,17 +114,25 @@ class ReferenceDB:
         publisher = entry.get("publisher", "")
         year = entry.get("year", "")
 
+        # 判断是否中文文献
+        is_cn = self._is_chinese(title) or self._is_chinese(publisher)
+        colon = "：" if is_cn else ": "
+        sep = "，" if is_cn else ", "
+
         parts = []
         if authors:
             parts.append(authors + ".")
         if title:
             parts.append(title + "[M].")
         if address and publisher:
-            parts.append(f"{address}: {publisher},")
+            parts.append(f"{address}{colon}{publisher}{sep}")
         elif publisher:
-            parts.append(f"{publisher},")
+            parts.append(f"{publisher}{sep}")
         if year:
-            parts.append(f" {year}.")
+            if is_cn:
+                parts.append(f"{year}.")
+            else:
+                parts.append(f" {year}.")
 
         result = "".join(parts)
         if not result.endswith("."):
@@ -162,12 +175,18 @@ class ReferenceDB:
                     formatted.append(author.upper())
                 has_foreign = True
 
-        # 选择分隔符：统一用半角逗号+空格
-        sep = ", "
+        # 选择分隔符
+        if has_chinese and not has_foreign:
+            sep = "，"
+        else:
+            sep = ", "
 
         # 超过3个时省略
         if len(formatted) > 3:
-            return sep.join(formatted[:3]) + ", 等"
+            if has_chinese and not has_foreign:
+                return sep.join(formatted[:3]) + "，等"
+            else:
+                return sep.join(formatted[:3]) + ", et al"
         elif len(formatted) == 3:
             return sep.join(formatted)
         elif len(formatted) == 2:

@@ -33,3 +33,4 @@ AGENTS.md
 # Temporary/cache
 .spec-workflow/
 docs/superpowers/
+.pytest_cache/

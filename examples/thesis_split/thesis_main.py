@@ -47,7 +47,7 @@ doc.start_roman_section()           # 开始罗马数字页码 I, II, III...
 doc.include("front.abstract_cn")    # 中文摘要（可选）
 doc.include("front.abstract_en")    # 英文摘要（可选）
 doc.include("front.denotation")     # 物理量符号表（可选）
-doc.add_toc(blank_line_before=True) # 目录（blank_line_before：第一章前空一行，本科生要求）
+doc.add_toc(blank_line_before=True) # 目录（blank_line_before：第一章前空一行）
 
 # ==============================================================================
 # 正文（mainmatter）

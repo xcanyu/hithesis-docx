@@ -8,14 +8,17 @@
 > **建议：正式学位论文写作请使用 [hithesis](https://github.com/hithesis/hithesis) LaTeX 模板编译。** 本项目适用于对格式要求不严的 `.docx` 文档生成场景，如草稿、非正式提交、课程报告等。
 
 ---
+> **写在前面的话**
+
+本来是想着用AI生成格式能看的docx，试过几个方法也不咋行，~~或许其实当初有其他方案~~，决定干这个，但是做着做着就变成了搓论文模板，而且搓了半天还是不满意，最终用vba工具实测了word数据，才定下这版，其实也不是很准，而且学校word模板还有一定的误差，感觉就这样吧，我也没有这个提交过课程报告，也不知道格式可不可以，此外，我也没写过正经的论文，也不知道格式标不标准，总之就这样吧，当个**赤石科技**吧。
 
 > **代码生成声明**
 >
-> 本项目全部代码由基于 **Minimax M2.7** / **Deepseek V4 系列** 的 **Claude Code** 生成，人工仅做需求描述和效果验证。
+> 本项目全部代码由基于 **Minimax** 、 **Deepseek V4 系列** 、 **MiMo系列** 生成，人工仅做需求描述和效果验证。
 
 > **重要声明**
 >
-> 本项目格式参考 [hithesis/hithesis](https://github.com/hithesis/hithesis)（哈工大 LaTeX 学位论文模板），在此基础上做了**高仿**，**并非严格符合**《哈尔滨工业大学学位论文撰写规范》。目前仅实现了**本科**，硕博（master/doctor）未做。深圳/威海校区未做，仅预留了 `campus` 参数空间。**不建议用于正式学位论文提交**，仅供学习交流。
+> 本项目格式参考 [hithesis/hithesis](https://github.com/hithesis/hithesis)（哈工大 LaTeX 学位论文模板）和 哈尔滨工业大学相关学位论文撰写规范。目前仅实现了**本科**，硕博（master/doctor）未做。深圳/威海校区未做，仅预留了 `campus` 参数空间。**不建议用于正式学位论文提交**，仅供学习交流。
 
 ## 特性
 
@@ -42,7 +45,7 @@ Linux/macOS 激活用 `source .venv/bin/activate`。
 ```python
 from hitthesis import Thesis
 
-doc = Thesis(type="bachelor", campus="harbin")  # type: bachelor|master|doctor, campus: harbin
+doc = Thesis(type="bachelor", campus="harbin")  # type: bachelor（当前仅实现）, campus: harbin
 doc.set_info(
     title="局部多孔质气体静压轴承关键技术的研究",
     english_title="RESEARCH ON KEY TECHNOLOGIES OF PARTIAL POROUS EXTERNALLY PRESSURIZED GAS BEARING",
@@ -89,13 +92,13 @@ doc.compile("thesis.docx")
 
 ```python
 doc = Thesis(type="bachelor", campus="harbin")
-# type: "bachelor"|"master"|"doctor"
+# type: "bachelor"（当前仅实现，"master"/"doctor" 预留）
 # campus: 当前仅实现 "harbin"（预留 "shenzhen"|"weihai"）
 # header_text: False|None = 无页眉, "文字" = 自定义, 省略 = "哈尔滨工业大学"
 
 doc.set_info(
     title="论文标题",          # 必填
-    english_title="ENGLISH TITLE",  # 英文标题（封面用，可选）
+    english_title="ENGLISH TITLE",  # 英文标题（封面用）
     author="作者姓名",        # 必填
     supervisor="导师姓名",    # 必填
     subject="学科专业",
@@ -155,7 +158,7 @@ tbl.set_cell(0, 0, "参数", bold=True)
 tbl.set_cell(0, 1, "数值", bold=True)
 
 # 图片（自动编号，居中）
-doc.add_figure("image.png", caption="实验结果对比", width=Cm(10), ref="fig_result")
+doc.add_figure("examples/fig/fig_sample.jpg", caption="砂箱建模图", width=Cm(10), ref="fig_result")
 
 # 子图（并排或网格布局，自动编号 a/b/c）
 doc.add_subfigure(
@@ -168,7 +171,8 @@ doc.add_subfigure(
 )
 
 # 公式（无边框表格，编号右对齐）
-doc.add_equation(r"\frac{\partial p}{\partial x} = 0", label="2-1", ref="eq_ns")
+doc.add_equation(r"\frac{\partial p}{\partial x} = 0", label="2-1", ref="eq_ns")  # 手动编号
+doc.add_equation(r"E=mc^2", ref="eq_mass")  # 自动编号（章号-序号）
 
 # 代码块（Consolas 9pt 灰底，题注在上）
 doc.add_code_block("def hello():\n    print('hello')", caption="Hello World", ref="code_hello")
@@ -184,8 +188,9 @@ doc.add_theorem("对于不可压缩流体...", kind="定理", ref="thm_1", cite=
 # 引用块（楷体 12pt，左右缩进）
 doc.add_quote("气体轴承的概念最早由法国学者Hirn于1854年提出...")
 
-# 脚注
+# 脚注（number 可选，自定义序号）
 doc.add_footnote("此处指公开发表的学术论文。")
+doc.add_footnote("第二条脚注", number=2)  # 自定义序号
 
 # 分页
 doc.add_page_break()
@@ -300,7 +305,7 @@ def build(doc):
 
 ## 格式说明
 
-以下为当前实现的格式（以学校 **2025 年官方本科 Word 模板**为唯一标准）：
+以下为当前实现的格式：
 
 - **页面**：A4 (210×297mm)，版芯 150×236mm，上边距 38mm，左右边距 30mm，下边距 30mm
 - **章标题**：黑体 18pt 加粗，居中，段前 20pt，段后 17pt
@@ -341,7 +346,7 @@ hithesis-docx/
 ├── output/                     # 生成的文档输出
 ├── requirements.txt
 ├── README.md
-├── md转Word排版-skill.md       # OpenCode skill（md→docx 转换）
+├── md-to-docx-skill.md         # skill（md→docx 转换，测试中）
 └── LICENSE
 ```
 
@@ -362,7 +367,7 @@ python examples/thesis_split/thesis_main.py
 - **空白页 Bug**：TOC 域展开后，目录与第一章之间可能出现多余空白页。
 - **公式字体**：OMML 公式字体由 Word 内部管理，暂不支持强制设置为 Times New Roman。
 - **WPS 兼容性**：字间距（`w:spacing`）在 Word 和 WPS 下渲染效果有差异，以 Word 为准。
-- **脚注按页计数**：当前全文连续计数（①②③），未按页重置（python-docx 生成阶段无法获知页码）。
+- **脚注按页计数**：默认全文连续计数（①②③），可通过 `number` 参数手动指定序号实现按页重置。
 
 ## 未实现
 
@@ -377,7 +382,7 @@ python examples/thesis_split/thesis_main.py
 
 ## Skill
 
-本项目附带 OpenCode skill（`md转Word排版-skill.md`），基于本项目的格式规范，可自动将 Markdown 转换为 hithesis 格式的 Word 文档。将其放入 `~/.claude/skills/md-to-hithesis-docx/` 或 OpenCode 对应目录即可生效。
+本项目正尝试将 Markdown 文件转换为 hithesis 格式的 Word 文档。详见 `md-to-docx-skill.md`。
 
 ## 注意事项
 
@@ -387,9 +392,9 @@ python examples/thesis_split/thesis_main.py
 
 ## 致谢
 
-- [hithesis/hithesis](https://github.com/hithesis/hithesis) — 哈工大 LaTeX 学位论文模板，本项目格式参考来源
-- 哈尔滨工业大学相关论文规范
-- 基于 Minimax M2.7 / Deepseek V4 系列的 Claude Code — 本项目全部代码由此生成
+
+- 格式参考来源 — 哈尔滨工业大学相关论文规范、[hithesis/hithesis](https://github.com/hithesis/hithesis)
+- 本项目全部代码基于**Minimax** 、 **Deepseek V4 系列** 、 **MiMo系列** 生成
 
 ## License
 
