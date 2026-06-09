@@ -46,7 +46,10 @@ class Table:
             para.paragraph_format.line_spacing = Pt(14)
             para.paragraph_format.space_before = Pt(6)
             para.paragraph_format.space_after = Pt(6)
-            text = f"表{self.label}　{self.caption}" if self.label else self.caption
+            # 附录内 caption 文字加"附"前缀：附表 1-1、附表 A-1
+            # 章节内：表 1-1
+            table_word = "附表" if getattr(self.thesis, '_in_appendix', False) else "表"
+            text = f"{table_word}{self.label}　{self.caption}" if self.label else self.caption
             add_caption_with_bookmark(para, self.ref, text)
 
         self._table = self.doc.add_table(rows=self.rows, cols=self.cols)
@@ -171,7 +174,9 @@ class Figure:
             para.paragraph_format.line_spacing = Pt(14)
             para.paragraph_format.space_before = Pt(6)
             para.paragraph_format.space_after = Pt(6)
-            text = f"图{self.label}　{self.caption}" if self.label else self.caption
+            # 附录内 caption 文字加"附"前缀：附图 1-1
+            figure_word = "附图" if getattr(self.thesis, '_in_appendix', False) else "图"
+            text = f"{figure_word}{self.label}　{self.caption}" if self.label else self.caption
             add_caption_with_bookmark(para, self.ref, text)
 
         return self
@@ -259,7 +264,9 @@ class SubFigure:
             para.paragraph_format.line_spacing = Pt(14)
             para.paragraph_format.space_before = Pt(6)
             para.paragraph_format.space_after = Pt(6)
-            text = f"图{self.label}　{self.caption}" if self.label else self.caption
+            # 附录内 caption 文字加"附"前缀：附图 1-1
+            figure_word = "附图" if getattr(self.thesis, '_in_appendix', False) else "图"
+            text = f"{figure_word}{self.label}　{self.caption}" if self.label else self.caption
             add_caption_with_bookmark(para, self.ref, text)
 
         return self

@@ -283,17 +283,27 @@ def make_heading_para(doc, text, font_cn='黑体', font_size=18, bold=False):
 # 书签
 # ============================================================================
 
+_BOOKMARK_ID_COUNTER = [1000]  # 全局递增 ID（从 1000 起步，避免与系统预定义冲突）
+
+
+def _next_bookmark_id() -> int:
+    """获取下一个唯一 bookmark ID。"""
+    _BOOKMARK_ID_COUNTER[0] += 1
+    return _BOOKMARK_ID_COUNTER[0]
+
+
 def add_caption_with_bookmark(para, ref, text, font_cn="宋体", font_size=10.5):
     """添加带书签的题注文本（图/表/代码/子图共用）"""
     if ref:
+        bm_id = str(_next_bookmark_id())
         bm_start = OxmlElement('w:bookmarkStart')
-        bm_start.set(qn('w:id'), '0')
+        bm_start.set(qn('w:id'), bm_id)
         bm_start.set(qn('w:name'), f"cite_{ref}")
         para._element.append(bm_start)
         run = para.add_run(text)
         set_font(run, font_cn, font_size)
         bm_end = OxmlElement('w:bookmarkEnd')
-        bm_end.set(qn('w:id'), '0')
+        bm_end.set(qn('w:id'), bm_id)
         bm_end.set(qn('w:name'), f"cite_{ref}")
         para._element.append(bm_end)
     else:
@@ -302,25 +312,30 @@ def add_caption_with_bookmark(para, ref, text, font_cn="宋体", font_size=10.5)
 
 
 def add_bookmark(para_element, name):
-    """在段落 XML 元素中添加书签（起止标记）"""
+    """在段落 XML 元素中添加书签（起止标记）。
+
+    使用全局递增 ID 避免与文档其他 bookmark 冲突。
+    """
+    bm_id = str(_next_bookmark_id())
     bm_start = OxmlElement('w:bookmarkStart')
-    bm_start.set(qn('w:id'), '0')
+    bm_start.set(qn('w:id'), bm_id)
     bm_start.set(qn('w:name'), name)
     para_element.append(bm_start)
     bm_end = OxmlElement('w:bookmarkEnd')
-    bm_end.set(qn('w:id'), '0')
+    bm_end.set(qn('w:id'), bm_id)
     bm_end.set(qn('w:name'), name)
     para_element.append(bm_end)
 
 
 def add_bookmark_to_paragraph(para, bookmark_name: str):
-    """为文档段落添加书签"""
+    """为文档段落添加书签。"""
+    bm_id = str(_next_bookmark_id())
     bookmarkStart = OxmlElement('w:bookmarkStart')
-    bookmarkStart.set(qn('w:id'), str(hash(bookmark_name) % 32767))
+    bookmarkStart.set(qn('w:id'), bm_id)
     bookmarkStart.set(qn('w:name'), bookmark_name)
     para._p.insert(0, bookmarkStart)
     bookmarkEnd = OxmlElement('w:bookmarkEnd')
-    bookmarkEnd.set(qn('w:id'), str(hash(bookmark_name) % 32767))
+    bookmarkEnd.set(qn('w:id'), bm_id)
     bookmarkEnd.set(qn('w:name'), bookmark_name)
     para._p.append(bookmarkEnd)
 
@@ -438,8 +453,22 @@ def render_normal_text_with_superscripts(para, text: str):
             set_font(run, "宋体", 12)
 
 
-def add_ref_runs_merged(para, keys: list, reference_db=None):
-    """渲染参考文献引用，合并连续序号后输出上标"""
+def add_ref_runs(para, keys: list, reference_db=None, min_run_length: int = 2):
+    """渲染参考文献引用，连续序号自动合并为区间。
+
+    输出形态（GB/T 7714 风格）：
+      单个：              [5]
+      连续区间：          [1-3]   （当区间长度 > min_run_length）
+      独立+区间混合：     [1,3-5]
+      全部独立：          [1,2,3] （区间长度 <= min_run_length 时不合并）
+
+    Args:
+        para: python-docx Paragraph
+        keys: 引用 key 列表（按出现顺序）
+        reference_db: ReferenceDB 实例；若为 None 则原样输出 [ref:key] 占位
+        min_run_length: 至少几个连续序号才合并，默认为 2。
+                        设 1 = 全部独立显示；设 2 = 连续 2 个以上合并
+    """
     if not keys:
         return
     if reference_db is None:
@@ -460,7 +489,7 @@ def add_ref_runs_merged(para, keys: list, reference_db=None):
             end = nums[j]
             j += 1
         length = end - start + 1
-        if length >= 3:
+        if length > min_run_length:
             items.append((start, end))
         else:
             for num in range(start, end + 1):
@@ -482,3 +511,34 @@ def add_ref_runs_merged(para, keys: list, reference_db=None):
     right_bracket = para.add_run(']')
     set_font(right_bracket, "Times New Roman", 12)
     right_bracket.font.superscript = True
+
+
+def group_consecutive_refs(text: str):
+    """将文本中所有 [ref:xxx] 标记按"是否直接相邻"分组（中间 0 字符算一组）。
+
+    这是 P 规则的核心函数：
+      "同一处引用" = 两个 [ref:...] 之间没有任何字符
+      "分别引用"   = 中间有任何字符（标点、空白、汉字都算独立）
+
+    Args:
+        text: 含 [ref:xxx] 标记的文本
+    Returns:
+        list[list[str]]: 每组是直接相邻的 [ref:...] key 列表
+                         例如 [[A,B,C], [D], [E]] 表示 [A][B][C][D]...文本...[E]
+    """
+    import re
+    pattern = re.compile(r'\[ref:([a-zA-Z0-9_:.\-]+)\]')
+    matches = list(pattern.finditer(text))
+    if not matches:
+        return []
+
+    groups = []
+    current = [matches[0].group(1)]
+    for prev, curr in zip(matches, matches[1:]):
+        if curr.start() == prev.end():
+            current.append(curr.group(1))
+        else:
+            groups.append(current)
+            current = [curr.group(1)]
+    groups.append(current)
+    return groups

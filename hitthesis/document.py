@@ -18,7 +18,7 @@ from .ooxml_utils import (
     set_outline_level, add_page_break_before, apply_heading_style,
     add_heading_properties, set_first_line_indent,
     add_bookmark, add_bookmark_to_paragraph,
-    add_ref_hyperlink, add_hyperlink_run, add_ref_runs_merged,
+    add_ref_hyperlink, add_hyperlink_run, add_ref_runs, group_consecutive_refs,
     render_normal_text_with_superscripts, make_heading_para,
     disable_snap_to_grid,
     set_hanging_indent,
@@ -68,6 +68,7 @@ class Thesis:
         }
         self._setup_page()
         self._toc_blank_line = False  # 目录第一章前是否空一行
+        self._in_appendix = False  # 是否在附录节（控制编号加"附"前缀）
         # 封面：无页眉、无页脚、无页码（不调用 _setup_header_footer）
 
     def set_reference_db(self, bib: 'ReferenceDB'):
@@ -194,16 +195,15 @@ class Thesis:
         """解析文本中的特殊标记并渲染为 OOXML。
 
         支持四种标记（可混用）：
-          [ref:key]       → 参考文献引用（上标，连续的自动合并为 [1-3]）
+          [ref:key]       → 参考文献引用（上标，连续的直接相邻自动合并为 [1-3]）
           [cite:tag]      → 交叉引用（超链接跳转到图表/公式）
           [数字]           → 手动上标编号
           $LaTeX$         → LaTeX 公式/化学式
 
         处理方式：先收集所有标记位置，按顺序分段渲染。
-        连续的 [ref:] 先收集再批量输出（为了合并区间）。
+        连续的 [ref:]（中间 0 字符 = 直接相邻）先收集再批量输出（P 规则合并）。
         """
         import re
-        ref_keys = []
         last_end = 0
         positions = []
 
@@ -219,30 +219,41 @@ class Thesis:
 
         positions.sort(key=lambda x: (x[0], x[1]))
 
-        for start, end, ptype, content2 in positions:
-            if ptype == 'ref':
-                if start > last_end:
-                    render_normal_text_with_superscripts(para, text[last_end:start])
-                ref_keys.append(content2)
-                last_end = end
-            else:
-                if ref_keys:
-                    add_ref_runs_merged(para, ref_keys, self._reference_db)
-                    ref_keys = []
-                if start > last_end:
-                    render_normal_text_with_superscripts(para, text[last_end:start])
-                if ptype == 'cite':
-                    self._add_cite_runs(para, content2)
-                elif ptype == 'num':
-                    run = para.add_run(f'[{content2}]')
-                    run.font.superscript = True
-                    set_font(run, "Times New Roman", 12)
-                elif ptype == 'latex':
-                    add_latex_to_paragraph(para, content2, set_font)
-                last_end = end
+        # 按 P 规则分组连续的 [ref:]：直接相邻的合并为一组调用 add_ref_runs
+        i = 0
+        while i < len(positions):
+            start, end, ptype, content2 = positions[i]
+            if start > last_end:
+                render_normal_text_with_superscripts(para, text[last_end:start])
 
-        if ref_keys:
-            add_ref_runs_merged(para, ref_keys, self._reference_db)
+            if ptype == 'ref':
+                # 收集所有直接相邻的 [ref:] 直到遇到非 ref 或非相邻
+                group = [content2]
+                group_end = end
+                j = i + 1
+                while j < len(positions):
+                    next_start, next_end, next_type, next_content = positions[j]
+                    if next_type != 'ref' or next_start != group_end:
+                        break
+                    group.append(next_content)
+                    group_end = next_end
+                    j += 1
+                add_ref_runs(para, group, self._reference_db)
+                last_end = group_end
+                i = j
+                continue
+
+            if ptype == 'cite':
+                self._add_cite_runs(para, content2)
+            elif ptype == 'num':
+                run = para.add_run(f'[{content2}]')
+                run.font.superscript = True
+                set_font(run, "Times New Roman", 12)
+            elif ptype == 'latex':
+                add_latex_to_paragraph(para, content2, set_font)
+            last_end = end
+            i += 1
+
         if last_end < len(text):
             render_normal_text_with_superscripts(para, text[last_end:])
 
@@ -594,27 +605,25 @@ class Thesis:
             para2.paragraph_format.line_spacing = Pt(20.5)
             para2.paragraph_format.space_before = Pt(0)
             para2.paragraph_format.space_after = Pt(6)
+            disable_snap_to_grid(para2)
             set_hanging_indent(para2, 450)  # 悬挂缩进对齐[1] 后文字
 
-            # 编号部分：Times New Roman 小四(12pt)
-            run_idx = para2.add_run(f"[{idx}] ")
-            set_font(run_idx, 'Times New Roman', 12)
+            # 允许在任意字符处断行（防止 URL 整体跳到下一行导致上一行空白）
+            pPr = para2._element.get_or_add_pPr()
+            word_wrap = OxmlElement('w:wordWrap')
+            word_wrap.set(qn('w:val'), '0')
+            pPr.append(word_wrap)
 
-            # 文献内容：根据字符类型分别设置字体
-            # 匹配中文（CJK）和非中文部分
-            import re
-            parts = re.split(r'([一-鿿　-〿＀-￯]+)', ref_str)
-            for part in parts:
-                if not part:
-                    continue
-                if re.search(r'[一-鿿　-〿＀-￯]', part):
-                    # 中文部分：宋体小四(12pt)
-                    run = para2.add_run(part)
-                    set_font(run, '宋体', 12)
-                else:
-                    # 英文/数字部分：Times New Roman 小四(12pt)
-                    run = para2.add_run(part)
-                    set_font(run, 'Times New Roman', 12)
+            # 编号部分 + 文献内容合成一个 run
+            run = para2.add_run(f"[{idx}] {ref_str}")
+            rPr = run._element.get_or_add_rPr()
+            rFonts = OxmlElement('w:rFonts')
+            rFonts.set(qn('w:ascii'), 'Times New Roman')
+            rFonts.set(qn('w:hAnsi'), 'Times New Roman')
+            rFonts.set(qn('w:eastAsia'), '宋体')
+            rFonts.set(qn('w:cs'), 'Times New Roman')
+            rPr.append(rFonts)
+            run.font.size = Pt(12)
 
             # 为段落添加书签（供超链接跳转）
             bookmark_name = f"ref_{idx}"
@@ -1019,7 +1028,9 @@ class Thesis:
             para.paragraph_format.line_spacing = Pt(14)
             para.paragraph_format.space_before = Pt(6)
             para.paragraph_format.space_after = Pt(6)
-            text = f"代码{ref_num}　{caption}"
+            # 附录内 code caption 加"附"前缀：附代码 1-1
+            code_word = "附代码" if self._in_appendix else "代码"
+            text = f"{code_word}{ref_num}　{caption}"
 
             add_caption_with_bookmark(para, ref, text)
 
@@ -1075,8 +1086,10 @@ class Thesis:
             ref_num = label  # 去掉括号
         else:
             self._eq_counter += 1
-            number_text = f"({self.chapter_number}-{self._eq_counter})"
             ref_num = f"{self.chapter_number}-{self._eq_counter}"
+            # 附录内 number_text 加"附"前缀：(附1-1)；章节内：(1-1)
+            display_num = f"附{ref_num}" if self._in_appendix else ref_num
+            number_text = f"({display_num})"
 
         # 注册引用
         if ref:
@@ -1119,7 +1132,8 @@ class Thesis:
         self._setup_equation_cell(cells[0], "", 'left', 'center', col1_width)
 
         # 第2列：公式文本（居中，1.5倍行距，70%）
-        pPr2 = self._setup_equation_cell(cells[1], formula, 'center', 'center', col2_width)
+        para2_elem = self._setup_equation_cell(cells[1], formula, 'center', 'center', col2_width)
+        pPr2 = para2_elem.get_or_add_pPr()
         spacing2 = OxmlElement('w:spacing')
         spacing2.set(qn('w:line'), '360')  # 1.5倍行距
         spacing2.set(qn('w:lineRule'), 'auto')
@@ -1128,16 +1142,17 @@ class Thesis:
         pPr2.append(spacing2)
 
         # 第3列：编号（右对齐，垂直居中，15%）
-        pPr3 = self._setup_equation_cell(cells[2], number_text, 'right', 'center', col3_width)
+        para3_elem = self._setup_equation_cell(cells[2], number_text, 'right', 'center', col3_width)
+        pPr3 = para3_elem.get_or_add_pPr()
         spacing3 = OxmlElement('w:spacing')
         spacing3.set(qn('w:line'), '360')
         spacing3.set(qn('w:lineRule'), 'auto')
         spacing3.set(qn('w:before'), '152')
         spacing3.set(qn('w:after'), '152')
         pPr3.append(spacing3)
-        # 添加书签（交叉引用用）
+        # 添加书签（交叉引用用）—— 必须放在段落级 <w:p> 内，不能放 <w:tc>
         if ref:
-            add_bookmark(pPr3.getparent(), f"cite_{ref}")
+            add_bookmark(para3_elem, f"cite_{ref}")
 
         return self
 
@@ -1181,7 +1196,8 @@ class Thesis:
             run = para.add_run(text or "")
             set_font(run, "Times New Roman", 12)
 
-        return para._element.get_or_add_pPr()
+        # 返回段落元素（用于在段落级插入 bookmark）
+        return para._element
 
 
     def add_footnote(self, text, number=None):
