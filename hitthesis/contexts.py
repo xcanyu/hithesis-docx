@@ -27,8 +27,7 @@ class ChapterContext:
         self.thesis._thm_counter = 0
         # 不重置 cite_registry：跨章引用（如章2 引用 章1 的图）需要保留
         # 也不重置 pending_cites：让跨章 cite 仍能解析
-        # 脚注按章重置（每章从 ① 重新开始）
-        self.thesis._footnotes = []
+        # 不重置 _footnote_counter：脚注全局递增（Word 按页自动分隔）
 
         title = self.title
         if len(title) == 2 and re.match(r'^[一-龥]+$', title):
@@ -64,7 +63,7 @@ class AppendixContext:
         self.thesis._fig_counter = 0
         self.thesis._code_counter = 0
         self.thesis._thm_counter = 0
-        self.thesis._footnotes = []  # 脚注按章重置
+        # 不重置 _footnote_counter：脚注全局递增（Word 按页自动分隔）
         # 标记当前是附录，编号生成时会加"附"前缀
         self.thesis._in_appendix = True
 

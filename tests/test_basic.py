@@ -68,29 +68,28 @@ class TestAddParagraph:
     def test_add_paragraph_with_footnote(self, doc):
         doc.add_paragraph("测试段落", footnote="脚注内容")
         assert len(doc._footnotes) == 1
-        assert doc._footnotes[0] == (1, "脚注内容")
+        assert doc._footnotes[0] == (1, 1, "脚注内容")  # global_id=1, display_num=1
 
     def test_add_paragraph_with_footnote_number(self, doc):
         doc.add_paragraph("测试段落", footnote="脚注内容", footnote_number=5)
         assert len(doc._footnotes) == 1
-        assert doc._footnotes[0] == (5, "脚注内容")
+        assert doc._footnotes[0] == (1, 5, "脚注内容")  # global_id=1, display_num=5（用户传参）
 
 
 class TestAddFootnote:
     """测试 add_footnote 方法"""
 
     def test_add_footnote_default(self, doc):
-        # 先添加一个段落
         doc.add_paragraph("测试段落")
         doc.add_footnote("脚注内容")
         assert len(doc._footnotes) == 1
-        assert doc._footnotes[0] == (1, "脚注内容")
+        assert doc._footnotes[0] == (1, 1, "脚注内容")  # global_id=1, display_num=1
 
     def test_add_footnote_custom_number(self, doc):
         doc.add_paragraph("测试段落")
         doc.add_footnote("脚注内容", number=3)
         assert len(doc._footnotes) == 1
-        assert doc._footnotes[0] == (3, "脚注内容")
+        assert doc._footnotes[0] == (1, 3, "脚注内容")  # global_id=1, display_num=3（用户传参）
 
     def test_add_multiple_footnotes(self, doc):
         doc.add_paragraph("测试段落")
@@ -98,9 +97,9 @@ class TestAddFootnote:
         doc.add_footnote("第二条")
         doc.add_footnote("第三条")
         assert len(doc._footnotes) == 3
-        assert doc._footnotes[0] == (1, "第一条")
-        assert doc._footnotes[1] == (2, "第二条")
-        assert doc._footnotes[2] == (3, "第三条")
+        assert doc._footnotes[0] == (1, 1, "第一条")
+        assert doc._footnotes[1] == (2, 2, "第二条")
+        assert doc._footnotes[2] == (3, 3, "第三条")
 
 
 class TestDocumentGeneration:
@@ -142,7 +141,8 @@ class TestXMLStructure:
         # 验证脚注列表结构
         assert isinstance(doc._footnotes, list)
         assert len(doc._footnotes) == 1
-        fn_id, fn_text = doc._footnotes[0]
+        fn_id, fn_display, fn_text = doc._footnotes[0]
         assert isinstance(fn_id, int)
+        assert isinstance(fn_display, int)
         assert isinstance(fn_text, str)
         assert fn_text == "脚注内容"

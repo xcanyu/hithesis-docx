@@ -214,6 +214,19 @@ doc.add_references(bib)
 
 连续引用会自动合并区间：`[ref:A][ref:B][ref:C]` → `[1-3]`，非连续保持独立：`[ref:A][ref:C]` → `[1,3]`。
 
+**支持的文献类型**：
+
+| BibTeX 类型 | GB/T 7714 标识 | 说明 |
+|-------------|----------------|------|
+| `article` | `[J]` | 期刊文章 |
+| `book` | `[M]` | 图书 |
+| `inproceedings` / `conference` | `[C]` | 会议论文 |
+| `phdthesis` / `mastersthesis` | `[D]` | 学位论文 |
+| `standard` | `[S]` | 标准 |
+| `patent` | `[P]` | 专利 |
+| `techreport` / `report` | `[R]` | 报告 |
+| `online` / `electronic` / `misc` | `[EB/OL]` | 电子文献 |
+
 ### 交叉引用
 
 ```python

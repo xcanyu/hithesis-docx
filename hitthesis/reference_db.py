@@ -2,6 +2,7 @@
 
 import re
 import bibtexparser
+from bibtexparser.bparser import BibTexParser
 
 
 class ReferenceDB:
@@ -11,8 +12,13 @@ class ReferenceDB:
         self._citation_order = []  # 按引用顺序记录 key（可重复）
         self._citation_index = {}  # key -> first occurrence order (1-based)
 
+        # 配置解析器：允许非标准类型
+        parser = BibTexParser()
+        parser.common_strings = True
+        parser.ignore_nonstandard_types = False
+
         with open(bib_path, encoding="utf-8") as f:
-            bib_db = bibtexparser.load(f)
+            bib_db = bibtexparser.load(f, parser=parser)
 
         for entry in bib_db.entries:
             key = entry.get("ID", entry.get("key"))
@@ -45,13 +51,24 @@ class ReferenceDB:
             return ""
         entry = self.entries[key]
         entry_type = entry.get("ENTRYTYPE", "").lower()
-        if entry_type == "article":
-            return self._format_article(entry)
-        elif entry_type == "book":
-            return self._format_book(entry)
-        else:
-            # 默认当作文章处理
-            return self._format_article(entry)
+        formatters = {
+            "article": self._format_article,
+            "book": self._format_book,
+            "inproceedings": self._format_conference,
+            "conference": self._format_conference,
+            "phdthesis": self._format_thesis,
+            "mastersthesis": self._format_thesis,
+            "thesis": self._format_thesis,
+            "standard": self._format_standard,
+            "patent": self._format_patent,
+            "techreport": self._format_report,
+            "report": self._format_report,
+            "online": self._format_online,
+            "electronic": self._format_online,
+            "misc": self._format_online,
+        }
+        formatter = formatters.get(entry_type, self._format_article)
+        return formatter(entry)
 
     def _format_article(self, entry) -> str:
         """格式化期刊文章 [J]
@@ -79,7 +96,7 @@ class ReferenceDB:
         # 组装各部分
         parts = []
         if authors:
-            parts.append(authors + ".")
+            parts.append(authors + ". ")
         if title:
             parts.append(title + "[J].")
         # 刊名, 年, 卷(期): 页码 — 用逗号连接中间部分，最后加句点
@@ -121,7 +138,7 @@ class ReferenceDB:
 
         parts = []
         if authors:
-            parts.append(authors + ".")
+            parts.append(authors + ". ")
         if title:
             parts.append(title + "[M].")
         if address and publisher:
@@ -133,6 +150,220 @@ class ReferenceDB:
                 parts.append(f"{year}.")
             else:
                 parts.append(f" {year}.")
+
+        result = "".join(parts)
+        if not result.endswith("."):
+            result += "."
+        return result
+
+    def _format_conference(self, entry) -> str:
+        """格式化会议论文 [C]
+
+        格式：作者. 题名[C]//会议录题名. 出版地: 出版者, 年: 页码.
+        """
+        authors = self._format_author(entry.get("author", ""))
+        title = entry.get("title", "")
+        booktitle = entry.get("booktitle", "")
+        address = entry.get("address", "")
+        publisher = entry.get("publisher", "")
+        year = entry.get("year", "")
+        pages = entry.get("pages", "")
+
+        is_cn = self._is_chinese(title) or self._is_chinese(booktitle)
+        colon = "：" if is_cn else ": "
+        sep = "，" if is_cn else ", "
+
+        parts = []
+        if authors:
+            parts.append(authors + ". ")
+        if title:
+            parts.append(title + "[C]//")
+        if booktitle:
+            parts.append(booktitle + ".")
+        if address and publisher:
+            parts.append(f"{address}{colon}{publisher}{sep}")
+        elif publisher:
+            parts.append(f"{publisher}{sep}")
+        if year:
+            year_part = year
+            if pages:
+                year_part += f"{colon}{pages}"
+            parts.append(f"{year_part}.")
+
+        result = "".join(parts)
+        if not result.endswith("."):
+            result += "."
+        return result
+
+    def _format_thesis(self, entry) -> str:
+        """格式化学位论文 [D]
+
+        格式：作者. 题名[D]. 出版地: 学校, 年.
+        """
+        authors = self._format_author(entry.get("author", ""))
+        title = entry.get("title", "")
+        school = entry.get("school", "")
+        address = entry.get("address", "")
+        year = entry.get("year", "")
+
+        is_cn = self._is_chinese(title) or self._is_chinese(school)
+        colon = "：" if is_cn else ": "
+        sep = "，" if is_cn else ", "
+
+        parts = []
+        if authors:
+            parts.append(authors + ". ")
+        if title:
+            parts.append(title + "[D].")
+        if address and school:
+            parts.append(f"{address}{colon}{school}{sep}")
+        elif school:
+            parts.append(f"{school}{sep}")
+        if year:
+            if is_cn:
+                parts.append(f"{year}.")
+            else:
+                parts.append(f" {year}.")
+
+        result = "".join(parts)
+        if not result.endswith("."):
+            result += "."
+        return result
+
+    def _format_standard(self, entry) -> str:
+        """格式化标准 [S]
+
+        格式：作者. 题名: 标准号[S]. 出版地: 出版者, 年.
+        """
+        authors = self._format_author(entry.get("author", ""))
+        title = entry.get("title", "")
+        number = entry.get("number", "")
+        address = entry.get("address", "")
+        publisher = entry.get("publisher", "")
+        year = entry.get("year", "")
+
+        is_cn = self._is_chinese(title)
+        colon = "：" if is_cn else ": "
+        sep = "，" if is_cn else ", "
+
+        parts = []
+        if authors:
+            parts.append(authors + ". ")
+        if title:
+            title_part = title
+            if number:
+                title_part += f": {number}"
+            parts.append(title_part + "[S].")
+        if address and publisher:
+            parts.append(f"{address}{colon}{publisher}{sep}")
+        elif publisher:
+            parts.append(f"{publisher}{sep}")
+        if year:
+            if is_cn:
+                parts.append(f"{year}.")
+            else:
+                parts.append(f" {year}.")
+
+        result = "".join(parts)
+        if not result.endswith("."):
+            result += "."
+        return result
+
+    def _format_patent(self, entry) -> str:
+        """格式化专利 [P]
+
+        格式：专利申请者. 题名: 专利号[P]. 国别, 年.
+        """
+        authors = self._format_author(entry.get("author", ""))
+        title = entry.get("title", "")
+        number = entry.get("number", "")
+        country = entry.get("country", "")
+        year = entry.get("year", "")
+
+        is_cn = self._is_chinese(title)
+        sep = "，" if is_cn else ", "
+
+        parts = []
+        if authors:
+            parts.append(authors + ". ")
+        if title:
+            title_part = title
+            if number:
+                title_part += f": {number}"
+            parts.append(title_part + "[P].")
+        if country:
+            parts.append(f"{country}{sep}")
+        if year:
+            parts.append(f"{year}.")
+
+        result = "".join(parts)
+        if not result.endswith("."):
+            result += "."
+        return result
+
+    def _format_report(self, entry) -> str:
+        """格式化报告 [R]
+
+        格式：作者. 题名[R]. 出版地: 出版者, 年.
+        """
+        authors = self._format_author(entry.get("author", ""))
+        title = entry.get("title", "")
+        address = entry.get("address", "")
+        institution = entry.get("institution", "")
+        year = entry.get("year", "")
+
+        is_cn = self._is_chinese(title) or self._is_chinese(institution)
+        colon = "：" if is_cn else ": "
+        sep = "，" if is_cn else ", "
+
+        parts = []
+        if authors:
+            parts.append(authors + ". ")
+        if title:
+            parts.append(title + "[R].")
+        if address and institution:
+            parts.append(f"{address}{colon}{institution}{sep}")
+        elif institution:
+            parts.append(f"{institution}{sep}")
+        if year:
+            if is_cn:
+                parts.append(f"{year}.")
+            else:
+                parts.append(f" {year}.")
+
+        result = "".join(parts)
+        if not result.endswith("."):
+            result += "."
+        return result
+
+    def _format_online(self, entry) -> str:
+        """格式化电子文献 [EB/OL]
+
+        格式：作者. 题名[EB/OL]. (发布日期)[引用日期]. 获取路径.
+        """
+        authors = self._format_author(entry.get("author", ""))
+        title = entry.get("title", "")
+        url = entry.get("url", "")
+        year = entry.get("year", "")
+        month = entry.get("month", "")
+        note = entry.get("note", "")
+
+        is_cn = self._is_chinese(title)
+
+        parts = []
+        if authors:
+            parts.append(authors + ". ")
+        if title:
+            parts.append(title + "[EB/OL].")
+        if year:
+            date = year
+            if month:
+                date += f"-{month}"
+            parts.append(f"({date}).")
+        if note:
+            parts.append(f"[{note}].")
+        if url:
+            parts.append(f"{url}.")
 
         result = "".join(parts)
         if not result.endswith("."):
@@ -172,7 +403,7 @@ class ReferenceDB:
                     initials_formatted = " ".join(c.upper() for c in initials)
                     formatted.append(f"{last} {initials_formatted}")
                 else:
-                    formatted.append(author.upper())
+                    formatted.append(author)
                 has_foreign = True
 
         # 选择分隔符

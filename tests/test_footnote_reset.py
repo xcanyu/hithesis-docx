@@ -1,7 +1,6 @@
-"""脚注按章重置测试：ChapterContext.__enter__ 应清空 self._footnotes。"""
+"""脚注全局递增测试：global_id 始终递增，display_num 可用户自定义。"""
 
 import pytest
-
 from hitthesis import Thesis
 
 
@@ -10,27 +9,28 @@ def doc():
     return Thesis(type="bachelor", campus="harbin")
 
 
-class TestFootnotePerChapterReset:
-    """每章脚注应从 ① 重新开始"""
+class TestFootnoteGlobalIncrement:
+    """脚注 global_id 始终递增，不受用户 number 影响"""
 
-    def test_footnotes_reset_in_chapter_context(self, doc):
+    def test_footnotes_global_increment(self, doc):
+        """global_id 应始终递增，不因章节切换或用户传参而重置"""
         with doc.add_chapter("章1", "1"):
             doc.add_paragraph("段1", footnote="章1脚注1")
             doc.add_paragraph("段2", footnote="章1脚注2")
             assert len(doc._footnotes) == 2
+            assert doc._footnotes[0] == (1, 1, "章1脚注1")
+            assert doc._footnotes[1] == (2, 2, "章1脚注2")
         with doc.add_chapter("章2", "2"):
-            # 进入新章，脚注应被清空
-            assert doc._footnotes == []
             doc.add_paragraph("段1", footnote="章2脚注1")
-            # 章2 的脚注序号应从 1 开始
-            assert doc._footnotes[0] == (1, "章2脚注1")
+            assert doc._footnotes[-1] == (3, 3, "章2脚注1")
+            assert len(doc._footnotes) == 3
 
-    def test_appendix_also_resets(self, doc):
-        """附录也应重置脚注"""
-        with doc.add_chapter("章1", "1"):
-            doc.add_paragraph("段1", footnote="章1脚注")
-            assert len(doc._footnotes) == 1
-        with doc.add_appendix("附录A"):
-            assert doc._footnotes == []
-            doc.add_paragraph("附段1", footnote="附脚注")
-            assert doc._footnotes[0] == (1, "附脚注")
+    def test_footnote_user_number_does_not_affect_counter(self, doc):
+        """用户传 number 只影响 display_num，不影响 global_id"""
+        doc.add_paragraph("段1", footnote="脚注A")
+        assert doc._footnotes[0] == (1, 1, "脚注A")
+        doc.add_paragraph("段2", footnote="脚注B", footnote_number=9)
+        assert doc._footnotes[1] == (2, 9, "脚注B")  # global_id=2, display_num=9
+        # 下一个自动编号应继续从 3 开始
+        doc.add_paragraph("段3", footnote="脚注C")
+        assert doc._footnotes[2] == (3, 3, "脚注C")  # 不受 number=9 影响

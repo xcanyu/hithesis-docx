@@ -39,24 +39,24 @@ def fix_footnotes(filename, footnotes):
     settings_tree = etree.fromstring(settings_xml, parser)
     ct_tree = etree.fromstring(ct_xml, parser) if ct_xml else None
 
-    # 1. 正文：脚注标记 → w:hyperlink（跳转到脚注）+ w:bookmark（回跳目标）
-    _process_body_markers(doc_tree, footnotes)
+    # 1. 生成 footnotes.xml
+    # 从 document.xml 根元素复制所有命名空间声明，确保与 Word 兼容
+    ns_attrs = ' '.join(
+        f'{k}="{v}"' for k, v in doc_tree.nsmap.items() if k is not None
+    )
+    footnotes_xml = _build_footnotes_xml(footnotes, ns_attrs)
 
-    # 2. 生成 footnotes.xml（含回跳超链接）
-    footnotes_xml = _build_footnotes_xml(footnotes)
-
-    # 3. 修改 rels
+    # 2. 修改 rels
     _add_footnote_relationship(rels_tree)
 
-    # 4. 确保 settings.xml 有 footnotePr
+    # 3. 确保 settings.xml 有 footnotePr
     _ensure_footnote_pr(settings_tree)
 
-    # 5. 修改 Content_Types
+    # 4. 修改 Content_Types
     if ct_tree is not None:
         _add_footnote_content_type(ct_tree)
 
-    # 6. 写回 ZIP：替换已修改的文件，新文档可能没有 footnotes.xml 需要补写
-    modified_doc = etree.tostring(doc_tree, xml_declaration=True, encoding='UTF-8', standalone=True)
+    # 5. 写回 ZIP：document.xml 不需要修改（footnoteReference 已在生成时插入）
     modified_rels = etree.tostring(rels_tree, xml_declaration=True, encoding='UTF-8', standalone=True)
     modified_settings = etree.tostring(settings_tree, xml_declaration=True, encoding='UTF-8', standalone=True)
 
@@ -64,9 +64,7 @@ def fix_footnotes(filename, footnotes):
     with zipfile.ZipFile(filename, 'r') as zin:
         with zipfile.ZipFile(filename + '.tmp', 'w', zipfile.ZIP_DEFLATED) as zout:
             for item in zin.infolist():
-                if item.filename == 'word/document.xml':
-                    zout.writestr(item.filename, modified_doc)
-                elif item.filename == 'word/_rels/document.xml.rels':
+                if item.filename == 'word/_rels/document.xml.rels':
                     zout.writestr(item.filename, modified_rels)
                 elif item.filename == 'word/settings.xml':
                     zout.writestr(item.filename, modified_settings)
@@ -93,18 +91,24 @@ def _process_body_markers(doc_tree, footnotes):
     分两遍是因为 lxml 的 addprevious 顺序敏感——先插 bm_start 再插 bm_end 才能保证正确顺序。
     """
     circle_map = {CIRCLE[i]: i + 1 for i in range(len(CIRCLE))}
-    bookmark_id_counter = [100]  # 从100开始避免与其他书签ID冲突
+    bookmark_id_counter = [2000]  # 从2000开始，避免与主文档 bookmark ID（1000+）冲突
+
+    # footnotes 列表按添加顺序排列，遍历文档中的圆圈字符，按顺序匹配
+    fn_iter = iter(footnotes)
 
     body = doc_tree.find(f'{{{W}}}body')
-    for p in body.iter(f'{{{W}}}p'):
+    # 只处理 body 直接子段落，跳过表格等嵌套元素中的段落
+    for p in body.findall(f'{{{W}}}p'):
         for r in p.findall(f'{{{W}}}r'):
             t = r.find(f'{{{W}}}t')
             if t is None or t.text not in circle_map:
                 continue
-            fn_id = circle_map[t.text]
-            r_idx = list(p).index(r)
+            try:
+                fn_id, _ = next(fn_iter)
+            except StopIteration:
+                continue
 
-            # a) 回跳书签（脚注中 hyperlink 的目标）
+            # a) 回跳书签（脚注中 hyperlink 的跳转目标）
             bm_id = bookmark_id_counter[0]
             bookmark_id_counter[0] += 2
             bm_start = etree.Element(f'{{{W}}}bookmarkStart')
@@ -116,12 +120,16 @@ def _process_body_markers(doc_tree, footnotes):
             r.addprevious(bm_end)
 
     # 第二遍：在 ① run 前插入 footnoteReference（脚注定位），将 ① 包裹在 hyperlink 中
-    for p in body.iter(f'{{{W}}}p'):
+    fn_iter = iter(footnotes)
+    for p in body.findall(f'{{{W}}}p'):
         for r in list(p.findall(f'{{{W}}}r')):
             t = r.find(f'{{{W}}}t')
             if t is None or t.text not in circle_map:
                 continue
-            fn_id = circle_map[t.text]
+            try:
+                fn_id, _ = next(fn_iter)
+            except StopIteration:
+                continue
 
             # footnoteReference：Word 内部用的脚注锚点，设为 1pt 隐藏（不可见但不影响跳转）
             ref_run = etree.Element(f'{{{W}}}r')
@@ -148,10 +156,10 @@ def _ensure_footnote_pr(settings_tree):
         etree.SubElement(settings_tree, f'{{{W}}}footnotePr')
 
 
-def _build_footnotes_xml(footnotes):
-    """生成 word/footnotes.xml（单向跳转：正文→脚注）"""
+def _build_footnotes_xml(footnotes, ns_attrs=''):
+    """生成 word/footnotes.xml（使用 Word 原生脚注机制）"""
     parts = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>']
-    parts.append(f'<w:footnotes xmlns:w="{W}" xmlns:r="{R}">')
+    parts.append(f'<w:footnotes {ns_attrs} xmlns:w="{W}" xmlns:r="{R}">')
 
     parts.append('<w:footnote w:type="separator" w:id="-1">'
                  '<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/>'
@@ -161,18 +169,20 @@ def _build_footnotes_xml(footnotes):
                  '</w:pPr><w:r><w:continuationSeparator/></w:r></w:p></w:footnote>')
 
     bm_id = 200
-    for fn_id, text in footnotes:
+    for global_id, display_num, text in footnotes:
         safe_text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-        circle = CIRCLE[fn_id - 1] if fn_id <= 9 else f'[{fn_id}]'
+        circle = CIRCLE[display_num - 1] if display_num <= 9 else f'[{display_num}]'
 
         parts.append(
-            f'<w:footnote w:id="{fn_id}">'
+            f'<w:footnote w:id="{global_id}">'
             f'<w:p>'
-            f'<w:pPr><w:spacing w:line="270" w:lineRule="auto"/></w:pPr>'
-            # 书签（正文 hyperlink 的跳转目标）
-            f'<w:bookmarkStart w:id="{bm_id}" w:name="_ftn{fn_id}"/>'
+            f'<w:pPr>'
+            f'<w:ind w:left="400" w:firstLine="-400"/>'
+            f'<w:spacing w:line="270" w:lineRule="auto"/>'
+            f'</w:pPr>'
+            # 书签：正文 hyperlink 的跳转目标
+            f'<w:bookmarkStart w:id="{bm_id}" w:name="_ftn{global_id}"/>'
             f'<w:bookmarkEnd w:id="{bm_id}"/>'
-            # 编号 ①（正常字号，不上标）
             f'<w:r>'
             f'<w:rPr>'
             f'<w:sz w:val="18"/>'
@@ -180,12 +190,10 @@ def _build_footnotes_xml(footnotes):
             f'</w:rPr>'
             f'<w:t>{circle}</w:t>'
             f'</w:r>'
-            # 空格分隔
             f'<w:r>'
             f'<w:rPr><w:sz w:val="21"/><w:rFonts w:eastAsia="宋体"/></w:rPr>'
             f'<w:t xml:space="preserve">　</w:t>'
             f'</w:r>'
-            # 脚注文字
             f'<w:r>'
             f'<w:rPr>'
             f'<w:sz w:val="18"/>'

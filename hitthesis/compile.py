@@ -58,7 +58,7 @@ def _write_word_com_helper(path):
 def compile_document(doc, filename, thesis_type=None, toc_blank_line=False, footnotes=None):
     """编译生成论文文档
 
-    流程：保存原始 → Word COM 更新域（Windows）→ 覆盖 → TOC 字体修复 → 脚注后处理
+    流程：保存原始 → 脚注注入 → Word COM 更新域 → TOC 字体修复
 
     Args:
         doc: python-docx Document 对象
@@ -71,6 +71,11 @@ def compile_document(doc, filename, thesis_type=None, toc_blank_line=False, foot
     """
     raw = filename.replace(".docx", "_raw.docx")
     doc.save(raw)
+
+    # 脚注后处理（必须在 Word COM 之前，否则 Word 看到 footnoteReference 但找不到 footnotes.xml 会报错）
+    if footnotes:
+        from .footnote import fix_footnotes
+        fix_footnotes(raw, footnotes)
 
     if platform.system() == "Windows":
         try:
@@ -91,18 +96,6 @@ def compile_document(doc, filename, thesis_type=None, toc_blank_line=False, foot
     # TOC 字体修复
     from .toc_postproc import fix_toc_fonts
     fix_toc_fonts(filename, thesis_type=thesis_type, toc_blank_line=toc_blank_line)
-
-    # 脚注后处理
-    if footnotes:
-        from .footnote import fix_footnotes
-        fix_footnotes(filename, footnotes)
-
-    # 全局后处理：注入自动断字设置（英文按音节连字符换行）
-    # 注：用户需在 Word 开启"自动断字"才能看到效果
-    from .docx_postproc import enable_auto_hyphenation, set_paragraph_lang_in_references
-    enable_auto_hyphenation(filename)
-    # 参考文献段落显式设语言为 en-US/zh-CN，让 Word 知道按英文断字规则处理
-    set_paragraph_lang_in_references(filename)
 
     print(f"论文生成完成: {filename}")
     return filename

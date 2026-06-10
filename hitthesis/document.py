@@ -52,7 +52,9 @@ class Thesis:
         self._cite_registry = {}  # 交叉引用注册表 {标签名: (类型, 编号)}
         self._pending_cites = []  # 待解析引用 [(para_element, run_element, tag), ...]
         self._reference_db = None  # ReferenceDB 实例
-        self._footnotes = []  # 脚注收集 [(id, text), ...]
+        self._footnotes = []  # 脚注收集 [(global_id, display_num, text), ...]
+        self._footnote_counter = 0  # 脚注全局递增序号
+        self._footnote_counter = 0  # 脚注全局递增序号（用于①②③）
         self._tab_counter = 0  # 表格计数器
         self._fig_counter = 0  # 图片计数器
         self._code_counter = 0  # 代码块计数器
@@ -606,13 +608,7 @@ class Thesis:
             para2.paragraph_format.space_before = Pt(0)
             para2.paragraph_format.space_after = Pt(6)
             disable_snap_to_grid(para2)
-            set_hanging_indent(para2, 450)  # 悬挂缩进对齐[1] 后文字
-
-            # 允许在任意字符处断行（防止 URL 整体跳到下一行导致上一行空白）
-            pPr = para2._element.get_or_add_pPr()
-            word_wrap = OxmlElement('w:wordWrap')
-            word_wrap.set(qn('w:val'), '0')
-            pPr.append(word_wrap)
+            set_hanging_indent(para2, 450)
 
             # 编号部分 + 文献内容合成一个 run
             run = para2.add_run(f"[{idx}] {ref_str}")
@@ -812,15 +808,33 @@ class Thesis:
             number: 可选，自定义脚注序号。None 时使用全局递增序号
         """
         if number is None:
-            idx = len(self._footnotes) + 1
+            self._footnote_counter += 1
+            display_num = self._footnote_counter
         else:
-            idx = number
-        self._footnotes.append((idx, text))
+            self._footnote_counter += 1
+            display_num = number
+        global_id = self._footnote_counter
+        self._footnotes.append((global_id, display_num, text))
         CIRCLE = "①②③④⑤⑥⑦⑧⑨"
-        marker = CIRCLE[idx - 1] if idx <= 9 else f"[{idx}]"
+        marker = CIRCLE[display_num - 1] if display_num <= 9 else f"[{display_num}]"
 
-        # 创建标记 run 元素
-        def _make_marker_run():
+        # 创建隐藏 run：w:footnoteReference（Word 内部脚注定位用，1pt 不可见）
+        def _make_footnote_ref_run():
+            r = OxmlElement('w:r')
+            rPr = OxmlElement('w:rPr')
+            rStyle = OxmlElement('w:rStyle'); rStyle.set(qn('w:val'), 'FootnoteReference'); rPr.append(rStyle)
+            sz = OxmlElement('w:sz'); sz.set(qn('w:val'), '2'); rPr.append(sz)
+            r.append(rPr)
+            fn_ref = OxmlElement('w:footnoteReference')
+            fn_ref.set(qn('w:id'), str(global_id))
+            r.append(fn_ref)
+            return r
+
+        # 创建可见标记：包裹在 w:hyperlink 中，点击跳转到 footnotes.xml 的书签 _ftn{idx}
+        def _make_marker_hyperlink():
+            hl = OxmlElement('w:hyperlink')
+            hl.set(qn('w:anchor'), f'_ftn{global_id}')
+            hl.set(qn('w:history'), '1')
             r = OxmlElement('w:r')
             rPr = OxmlElement('w:rPr')
             sz = OxmlElement('w:sz'); sz.set(qn('w:val'), '24'); rPr.append(sz)
@@ -832,20 +846,23 @@ class Thesis:
             t = OxmlElement('w:t')
             t.set('{http://www.w3.org/XML/1998/namespace}space', 'preserve')
             t.text = marker; r.append(t)
-            return r
+            hl.append(r)
+            return hl
 
         W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
         runs = para._element.findall(f'{{{W}}}r')
         punct_trail = "。！？）』」》〉\"'.;!?)"
 
         if not runs:
-            para._element.append(_make_marker_run())
+            para._element.append(_make_footnote_ref_run())
+            para._element.append(_make_marker_hyperlink())
             return
 
         last_r = runs[-1]
         last_t = last_r.find(f'{{{W}}}t')
         if last_t is None or not last_t.text:
-            para._element.append(_make_marker_run())
+            para._element.append(_make_footnote_ref_run())
+            para._element.append(_make_marker_hyperlink())
             return
 
         text_end = last_t.text
@@ -866,10 +883,12 @@ class Thesis:
             pt = OxmlElement('w:t')
             pt.set('{http://www.w3.org/XML/1998/namespace}space', 'preserve')
             pt.text = trail; punct_r.append(pt)
-            para._element.append(_make_marker_run())
+            para._element.append(_make_footnote_ref_run())
+            para._element.append(_make_marker_hyperlink())
             para._element.append(punct_r)
         else:
-            para._element.append(_make_marker_run())
+            para._element.append(_make_footnote_ref_run())
+            para._element.append(_make_marker_hyperlink())
 
 
     def set_page_number_format(self, fmt, start=None):
