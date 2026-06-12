@@ -38,13 +38,13 @@ class TestEnableAutoHyphenation:
     """注入断字设置测试"""
 
     def test_inject_basic(self, docx_file):
-        """默认参数应注入 autoHyphenation=true 和 hyphenationZone=425"""
+        """默认参数应注入 autoHyphenation=true 和 hyphenationZone=200"""
         enable_auto_hyphenation(docx_file)
         xml = _read_settings_xml(docx_file)
         assert 'autoHyphenation' in xml
         assert 'hyphenationZone' in xml
-        # 默认 zone=425
-        assert 'val="425"' in xml
+        # 默认 zone=200（更激进的断字策略）
+        assert 'val="200"' in xml
 
     def test_inject_with_custom_zone(self, docx_file):
         """自定义断字区"""

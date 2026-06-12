@@ -97,5 +97,12 @@ def compile_document(doc, filename, thesis_type=None, toc_blank_line=False, foot
     from .toc_postproc import fix_toc_fonts
     fix_toc_fonts(filename, thesis_type=thesis_type, toc_blank_line=toc_blank_line)
 
+    # 全局后处理：注入自动断字设置（英文按音节连字符换行）
+    # 注：用户需在 Word 开启"自动断字"才能看到效果
+    from .docx_postproc import enable_auto_hyphenation, set_paragraph_lang_in_references
+    enable_auto_hyphenation(filename)
+    # 参考文献段落显式设语言为 en-US/zh-CN，让 Word 知道按英文断字规则处理
+    set_paragraph_lang_in_references(filename)
+
     print(f"论文生成完成: {filename}")
     return filename

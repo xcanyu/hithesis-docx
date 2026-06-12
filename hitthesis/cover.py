@@ -9,6 +9,7 @@ from .config import UNIVERSITY_NAME
 from .ooxml_utils import (
     set_font, estimate_text_width, set_cell_vertical_alignment,
     disable_snap_to_grid, add_spacer, make_tbl_borders_none,
+    suppress_auto_hyphenation,
 )
 
 
@@ -38,6 +39,7 @@ def add_cover(doc, info: dict, thesis_type: str, english_title: str = None):
     para.paragraph_format.space_after = Pt(52)
     run = para.add_run(cover_first_line)
     set_font(run, "宋体", 24, True)
+    suppress_auto_hyphenation(para)
 
     # 标题 - 黑体二号（22pt），居中
     para_title = doc.add_paragraph()
@@ -47,6 +49,7 @@ def add_cover(doc, info: dict, thesis_type: str, english_title: str = None):
     para_title.paragraph_format.space_after = Pt(44)
     run_title = para_title.add_run(info.get("title", ""))
     set_font(run_title, "黑体", 22, False)
+    suppress_auto_hyphenation(para_title)
 
     # 英文标题
     if english_title is None:
@@ -72,6 +75,7 @@ def add_cover(doc, info: dict, thesis_type: str, english_title: str = None):
         para_en.paragraph_format.space_after = Pt(67.2)
         run_en = para_en.add_run(english_title)
         set_font(run_en, "Times New Roman", en_font_size, True)
+        suppress_auto_hyphenation(para_en)
 
     # 作者姓名
     para_author = doc.add_paragraph()
@@ -81,6 +85,7 @@ def add_cover(doc, info: dict, thesis_type: str, english_title: str = None):
     para_author.paragraph_format.space_after = Pt(139.2)
     run_author = para_author.add_run(info.get("author", ""))
     set_font(run_author, "宋体", 18, True)
+    suppress_auto_hyphenation(para_author)
 
     # 哈尔滨工业大学
     para_univ = doc.add_paragraph()
@@ -90,6 +95,7 @@ def add_cover(doc, info: dict, thesis_type: str, english_title: str = None):
     para_univ.paragraph_format.space_after = Pt(9.7)
     run_univ = para_univ.add_run("哈尔滨工业大学")
     set_font(run_univ, "楷体", 18, True)
+    suppress_auto_hyphenation(para_univ)
 
     # 日期
     para_date = doc.add_paragraph()
@@ -100,6 +106,7 @@ def add_cover(doc, info: dict, thesis_type: str, english_title: str = None):
     date_str = info.get("date", "")
     run_date = para_date.add_run(date_str)
     set_font(run_date, "宋体", 18, True)
+    suppress_auto_hyphenation(para_date)
 
     # 本科生第二封面
     if thesis_type == "bachelor":
@@ -128,6 +135,7 @@ def add_cover2_bachelor(doc, info: dict):
     para_secret.paragraph_format.space_after = Pt(0)
     para_secret.paragraph_format.line_spacing = Pt(14)
     disable_snap_to_grid(para_secret)
+    suppress_auto_hyphenation(para_secret)
     # 清除列表格式
     pPr = para_secret._element.get_or_add_pPr()
     numPr = pPr.find(qn('w:numPr'))
@@ -159,6 +167,7 @@ def add_cover2_bachelor(doc, info: dict):
     para_label.paragraph_format.space_after = Pt(0)
     para_label.paragraph_format.line_spacing = Pt(22)
     disable_snap_to_grid(para_label)
+    suppress_auto_hyphenation(para_label)
     run = para_label.add_run("本科毕业论文（设计）")
     set_font(run, "宋体", 18, True)
 
@@ -173,6 +182,7 @@ def add_cover2_bachelor(doc, info: dict):
     para_thesis.paragraph_format.space_after = Pt(0)
     para_thesis.paragraph_format.line_spacing = Pt(28)
     disable_snap_to_grid(para_thesis)
+    suppress_auto_hyphenation(para_thesis)
     run = para_thesis.add_run(thesis_title)
     set_font(run, "黑体", 22, False)
 

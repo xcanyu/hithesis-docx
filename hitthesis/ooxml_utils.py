@@ -252,6 +252,16 @@ def disable_snap_to_grid(para):
     pPr.append(snap)
 
 
+def suppress_auto_hyphenation(para):
+    """禁用段落自动断字（用于封面等不应断字的段落）"""
+    pPr = para._element.get_or_add_pPr()
+    suppress = pPr.find(qn('w:suppressAutoHyphens'))
+    if suppress is None:
+        suppress = OxmlElement('w:suppressAutoHyphens')
+        pPr.append(suppress)
+    suppress.set(qn('w:val'), 'true')
+
+
 def add_spacer(doc, height_pt):
     """添加精确高度的空白段落（space_before + snapToGrid=0）"""
     para = doc.add_paragraph()

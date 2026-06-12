@@ -17,14 +17,15 @@ from lxml import etree
 W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
 
 
-def enable_auto_hyphenation(filename, zone_twips=425):
+def enable_auto_hyphenation(filename, zone_twips=200):
     """在 word/settings.xml 中注入自动断字设置
 
     Args:
         filename: docx 文件路径
-        zone_twips: 断字区宽度（twips，默认 425 ≈ 0.75 inch）。
-                    Word 在右页边距前 N twips 的范围内才允许断字。
-                    数值越小 → 断字越保守；越大 → 越激进。
+        zone_twips: 断字区宽度（twips，默认 200 ≈ 0.35 inch）。
+                    Word 在行尾空白超过此值时才尝试断字。
+                    数值越小 → 断字越激进；越大 → 越保守。
+                    默认值 360（0.25 inch），此处设为 200 让断字更积极。
     """
     with zipfile.ZipFile(filename, 'r') as z:
         settings_xml = z.read('word/settings.xml')
