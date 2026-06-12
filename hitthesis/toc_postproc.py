@@ -145,6 +145,48 @@ def _insert_toc_blank_line(tree, toc_blank_line):
     # print('已在目录正文开始处（第一章前）插入空白行')
 
 
+def _remove_toc_self_reference(tree):
+    """删除 TOC 中的"目　录"自引用条目
+
+    目录标题设置了 outline_level=0 以出现在 Word 导航栏，
+    但 TOC 域 \\o "1-3" 会将其收录为 TOC1 条目。
+    此函数在 TOC 展开后删除该自引用条目。
+    """
+    body_elem = tree.find(f'{{{W}}}body')
+    if body_elem is None:
+        return
+
+    to_remove = []
+
+    for p in body_elem.iter(f'{{{W}}}p'):
+        pPr = p.find(f'{{{W}}}pPr')
+        if pPr is None:
+            continue
+        pStyle = pPr.find(f'{{{W}}}pStyle')
+        if pStyle is None:
+            continue
+        style_id = pStyle.get(f'{{{W}}}val') or ''
+
+        # 检测 TOC1 样式的条目
+        if style_id in ('TOC1', 'TOC 1', 'TOC 1 Hyperlink'):
+            text_parts = []
+            for t in p.iter(f'{{{W}}}t'):
+                if t.text:
+                    text_parts.append(t.text)
+            para_text = ''.join(text_parts).strip()
+            # TOC 条目格式可能是 "标题\t页码" 或 "标题页码"（无制表符）
+            # 去掉全角空格和末尾页码（阿拉伯数字或罗马数字）后检查是否为"目录"
+            import re
+            cleaned = para_text.replace('\u3000', '').replace(' ', '')
+            cleaned = re.sub(r'[\dIVXLCDM]+$', '', cleaned)  # 去掉末尾页码
+            target = chr(0x76ee) + chr(0x5f55)  # 目录
+            if cleaned == target:
+                to_remove.append(p)
+
+    for p in to_remove:
+        body_elem.remove(p)
+
+
 def _fix_bachelor_cover2(tree):
     """修复本科生第二封面的 spacer 段落和表格边框（Word COM 可能篡改）"""
     body_elem = tree.find(f'{{{W}}}body')
@@ -250,6 +292,7 @@ def fix_toc_fonts(filename, thesis_type=None, toc_blank_line=False):
 
     # print(f'修改了 {modified_count} 个 run 的字体')
 
+    _remove_toc_self_reference(tree)
     _insert_toc_blank_line(tree, toc_blank_line)
 
     if thesis_type == "bachelor":

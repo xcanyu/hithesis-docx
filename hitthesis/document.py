@@ -460,6 +460,7 @@ class Thesis:
         para = self.doc.add_paragraph()
         add_page_break_before(para)
         apply_heading_style(para)
+        set_outline_level(para, 0)  # 设置大纲级别，使目录标题出现在 Word 导航栏
         run = para.add_run("目　录")
         set_font(run, "黑体", 18, False)
 
