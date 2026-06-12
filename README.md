@@ -25,6 +25,8 @@
 - **参考规范**：格式参考 [hithesis](https://github.com/hithesis/hithesis) LaTeX 模板——页面边距、字体字号、行距缩进、三线表、双线页眉
 - **代码驱动**：用 Python 描述文档结构，版本可控、可复用
 - **学位类型**：本科（bachelor），校区仅实现本部（harbin）
+- **英文断字**：参考文献英文长词在行尾自动按音节断字（需 Word 开启自动断字）
+- **目录导航**：目录标题显示在 Word 导航栏，但不出现在目录条目中
 
 ## 安装
 
@@ -345,7 +347,8 @@ hithesis-docx/
 │   ├── cover.py                # 封面
 │   ├── authorization.py        # 授权声明页（本科/硕博双版本）
 │   ├── compile.py              # 编译流水线
-│   ├── toc_postproc.py         # TOC 字体修复
+│   ├── toc_postproc.py         # TOC 字体修复 + 目录自引用删除
+│   ├── docx_postproc.py        # 断字后处理（自动断字 + 参考文献语言设置）
 │   ├── footnote.py             # 脚注生成
 │   ├── latex_render.py         # LaTeX 公式渲染
 │   └── reference_db.py         # BibTeX 文献数据库
@@ -357,9 +360,9 @@ hithesis-docx/
 │       ├── body/               #   正文章节
 │       └── back/               #   后文（结论、参考文献、附录等）
 ├── output/                     # 生成的文档输出
+├── tests/                      # 单元测试
 ├── requirements.txt
 ├── README.md
-├── md-to-docx-skill.md         # skill（md→docx 转换，测试中）
 └── LICENSE
 ```
 
@@ -377,10 +380,11 @@ python examples/thesis_split/thesis_main.py
 
 ## 已知问题
 
-- **空白页 Bug**：TOC 域展开后，目录与第一章之间可能出现多余空白页。
+- **空白页 Bug**：TOC 域展开后，目录与第一章之间可能出现多余空白页（Word 固有问题）。
 - **公式字体**：OMML 公式字体由 Word 内部管理，暂不支持强制设置为 Times New Roman。
 - **WPS 兼容性**：字间距（`w:spacing`）在 Word 和 WPS 下渲染效果有差异，以 Word 为准。
 - **脚注按页计数**：默认全文连续计数（①②③），可通过 `number` 参数手动指定序号实现按页重置。
+- **英文断字**：需在 Word 中开启"自动断字"（File → Options → Proofing）才能看到效果。
 
 ## 未实现
 
@@ -390,7 +394,6 @@ python examples/thesis_split/thesis_main.py
 - 长表格及续表（跨页重复表头）
 - 算法伪代码（行号+关键词着色）
 - 开题/中期报告
-- 英文目录
 - 全日制/非全日制区分
 
 ## Skill
@@ -400,6 +403,8 @@ python examples/thesis_split/thesis_main.py
 ## 注意事项
 
 - **目录更新**：生成的目录是 Word TOC 域代码。Windows 下编译时自动更新；macOS / Linux 下首次打开文档后需手动更新（`Ctrl+A` → `F9` → "更新整个目录"）
+- **目录导航**：目录标题显示在 Word 导航栏，但不出现在目录条目中（通过 TOC 后处理实现）
+- **英文断字**：参考文献英文长词在行尾自动按音节断字，封面段落禁用断字。需在 Word 中开启"自动断字"才能看到效果
 - **仅限 Windows**：Word COM 接口仅在 Windows 下可用
 - **编译中间文件**：编译过程生成 `_raw.docx`（TOC 更新前的原始文件），自动 gitignored
 
