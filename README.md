@@ -394,6 +394,7 @@ python examples/thesis_split/thesis_main.py
 - 长表格及续表（跨页重复表头）
 - 算法伪代码（行号+关键词着色）
 - 开题/中期报告
+- 英文目录
 - 全日制/非全日制区分
 
 ## Skill
