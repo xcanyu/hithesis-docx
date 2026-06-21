@@ -54,7 +54,6 @@ class Thesis:
         self._reference_db = None  # ReferenceDB 实例
         self._footnotes = []  # 脚注收集 [(global_id, display_num, text), ...]
         self._footnote_counter = 0  # 脚注全局递增序号
-        self._footnote_counter = 0  # 脚注全局递增序号（用于①②③）
         self._tab_counter = 0  # 表格计数器
         self._fig_counter = 0  # 图片计数器
         self._code_counter = 0  # 代码块计数器
@@ -479,10 +478,6 @@ class Thesis:
         fldChar2.set(qn('w:fldCharType'), 'end')
         run._r.append(fldChar2)
 
-    def add_page_break(self):
-        """普通分页（不创建新节）"""
-        self.doc.add_page_break()
-
     def add_authorization(self, add_to_toc=True):
         """添加授权声明"""
         _add_authorization(self.doc, self.info, add_to_toc, thesis_type=self.type)
@@ -904,7 +899,7 @@ class Thesis:
         if old is not None:
             sectPr.remove(old)
         pgNumType = OxmlElement('w:pgNumType')
-        pgNumType.set(qn('w:val'), fmt)
+        pgNumType.set(qn('w:fmt'), fmt)
         if start is not None:
             pgNumType.set(qn('w:start'), str(start))
         sectPr.append(pgNumType)
@@ -1232,7 +1227,7 @@ class Thesis:
         self._insert_footnote_marker(target_para, text, number=number)
 
     def add_page_break(self):
-        """手动分页"""
+        """普通分页（不创建新节）"""
         para = self.doc.add_paragraph()
         run = para.add_run()
         run._element.append(OxmlElement('w:br'))

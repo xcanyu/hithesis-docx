@@ -106,6 +106,11 @@ def set_paragraph_lang_in_references(filename, lang_western='en-US', lang_eastas
             in_refs_section = True
             continue
 
+        if para_text in ('致谢', '附录', 'Acknowledgements', 'Appendix',
+                         '攻读博士学位期间发表的论文及其他成果', '个人简历'):
+            in_refs_section = False
+            continue
+
         if not in_refs_section:
             continue
 
