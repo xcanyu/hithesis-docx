@@ -3,6 +3,7 @@ OOXML 原子操作工具集
 统一管理所有底层 Word OOXML 操作，消除 document.py 中的重复 XML 模式
 """
 
+import re
 from docx.shared import Pt
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
@@ -13,7 +14,11 @@ from docx.oxml import OxmlElement
 # ============================================================================
 
 def set_font(run, cn_font, size, bold=False):
-    """设置中英文字体：中文用指定字体，英文固定 Times New Roman"""
+    """设置中英文字体：中文用指定字体，英文固定 Times New Roman
+
+    中文引号""''等属于 Unicode 通用标点区段，Word 用 hAnsi 字体渲染。
+    若 run 文本含 CJK 或中文标点，则 hAnsi 也用中文字体，避免引号变英文样式。
+    """
     run.font.size = Pt(size)
     run.font.bold = bold
     rPr = run._element.get_or_add_rPr()
@@ -23,7 +28,28 @@ def set_font(run, cn_font, size, bold=False):
         rPr.append(rFonts)
     rFonts.set(qn('w:eastAsia'), cn_font)
     rFonts.set(qn('w:ascii'), "Times New Roman")
-    rFonts.set(qn('w:hAnsi'), "Times New Roman")
+    # 若文本含中文字符或中文标点，hAnsi 也用中文字体
+    text = run.text or ""
+    if _has_cjk_or_cn_punct(text):
+        rFonts.set(qn('w:hAnsi'), cn_font)
+    else:
+        rFonts.set(qn('w:hAnsi'), "Times New Roman")
+
+
+def _has_cjk_or_cn_punct(text: str) -> bool:
+    """检测文本是否含 CJK 字符或中文标点（含中文引号等）"""
+    for ch in text:
+        cp = ord(ch)
+        # CJK 统一表意文字
+        if 0x4E00 <= cp <= 0x9FFF:
+            return True
+        # 中文引号和标点：“ ” ‘ ’ — … 、 。
+        if cp in (0x201C, 0x201D, 0x2018, 0x2019, 0x2014, 0x2026, 0x3001, 0x3002):
+            return True
+        # 全角空格、中文顿号等
+        if 0x3000 <= cp <= 0x303F:
+            return True
+    return False
 
 
 def estimate_text_width(text, font_size_pt):
@@ -302,23 +328,51 @@ def _next_bookmark_id() -> int:
     return _BOOKMARK_ID_COUNTER[0]
 
 
-def add_caption_with_bookmark(para, ref, text, font_cn="宋体", font_size=10.5):
-    """添加带书签的题注文本（图/表/代码/子图共用）"""
+def add_caption_with_bookmark(para, ref, text, font_cn="宋体", font_size=10.5, reference_db=None):
+    """添加带书签的题注文本（图/表/代码/子图共用）
+
+    支持 caption 中的 [ref:key] 引用标记，渲染为上标文献序号。
+    """
     if ref:
         bm_id = str(_next_bookmark_id())
         bm_start = OxmlElement('w:bookmarkStart')
         bm_start.set(qn('w:id'), bm_id)
         bm_start.set(qn('w:name'), f"cite_{ref}")
         para._element.append(bm_start)
-        run = para.add_run(text)
-        set_font(run, font_cn, font_size)
+        _add_caption_runs(para, text, font_cn, font_size, reference_db)
         bm_end = OxmlElement('w:bookmarkEnd')
         bm_end.set(qn('w:id'), bm_id)
         bm_end.set(qn('w:name'), f"cite_{ref}")
         para._element.append(bm_end)
     else:
-        run = para.add_run(text)
-        set_font(run, font_cn, font_size)
+        _add_caption_runs(para, text, font_cn, font_size, reference_db)
+
+
+def _add_caption_runs(para, text, font_cn="宋体", font_size=10.5, reference_db=None):
+    """渲染题注文本，将 [ref:key] 解析为上标超链接引用。"""
+    parts = re.split(r'(\[ref:[a-zA-Z0-9_:.-]+\])', text)
+    for part in parts:
+        if not part:
+            continue
+        m = re.match(r'\[ref:([a-zA-Z0-9_:.-]+)\]', part)
+        if m:
+            key = m.group(1)
+            if reference_db:
+                num = reference_db.cite(key)
+                lb = para.add_run('[')
+                set_font(lb, "Times New Roman", font_size)
+                lb.font.superscript = True
+                add_ref_hyperlink(para, str(num), f'ref_{num}')
+                rb = para.add_run(']')
+                set_font(rb, "Times New Roman", font_size)
+                rb.font.superscript = True
+            else:
+                run = para.add_run(f'[ref:{key}]')
+                set_font(run, "Times New Roman", font_size)
+                run.font.superscript = True
+        else:
+            run = para.add_run(part)
+            set_font(run, font_cn, font_size)
 
 
 def add_bookmark(para_element, name):

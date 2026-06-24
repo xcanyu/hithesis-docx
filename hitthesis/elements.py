@@ -50,7 +50,8 @@ class Table:
             # 章节内：表 1-1
             table_word = "附表" if getattr(self.thesis, '_in_appendix', False) else "表"
             text = f"{table_word}{self.label}　{self.caption}" if self.label else self.caption
-            add_caption_with_bookmark(para, self.ref, text)
+            add_caption_with_bookmark(para, self.ref, text,
+                                      reference_db=getattr(self.thesis, '_reference_db', None))
 
         self._table = self.doc.add_table(rows=self.rows, cols=self.cols)
         self._table.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -177,7 +178,8 @@ class Figure:
             # 附录内 caption 文字加"附"前缀：附图 1-1
             figure_word = "附图" if getattr(self.thesis, '_in_appendix', False) else "图"
             text = f"{figure_word}{self.label}　{self.caption}" if self.label else self.caption
-            add_caption_with_bookmark(para, self.ref, text)
+            add_caption_with_bookmark(para, self.ref, text,
+                                      reference_db=getattr(self.thesis, '_reference_db', None))
 
         return self
 
@@ -267,6 +269,7 @@ class SubFigure:
             # 附录内 caption 文字加"附"前缀：附图 1-1
             figure_word = "附图" if getattr(self.thesis, '_in_appendix', False) else "图"
             text = f"{figure_word}{self.label}　{self.caption}" if self.label else self.caption
-            add_caption_with_bookmark(para, self.ref, text)
+            add_caption_with_bookmark(para, self.ref, text,
+                                      reference_db=getattr(self.thesis, '_reference_db', None))
 
         return self
