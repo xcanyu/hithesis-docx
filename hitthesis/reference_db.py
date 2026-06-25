@@ -22,7 +22,7 @@ class ReferenceDB:
 
         for entry in bib_db.entries:
             key = entry.get("ID", entry.get("key"))
-            self.entries[key] = dict(entry)
+            self.entries[key] = self._clean_latescapes(dict(entry))
 
     def cite(self, key: str) -> int:
         """记录一次引用，返回序号（1-based），重复引用返回已有序号"""
@@ -98,7 +98,7 @@ class ReferenceDB:
         if authors:
             parts.append(authors + ". ")
         if title:
-            parts.append(title + "[J].")
+            parts.append(title + "[J]. ")
         # 刊名, 年, 卷(期): 页码 — 用逗号连接中间部分，最后加句点
         mid = []
         if journal:
@@ -140,7 +140,7 @@ class ReferenceDB:
         if authors:
             parts.append(authors + ". ")
         if title:
-            parts.append(title + "[M].")
+            parts.append(title + "[M]. ")
         if address and publisher:
             parts.append(f"{address}{colon}{publisher}{sep}")
         elif publisher:
@@ -179,7 +179,7 @@ class ReferenceDB:
         if title:
             parts.append(title + "[C]//")
         if booktitle:
-            parts.append(booktitle + ".")
+            parts.append(booktitle + ". ")
         if address and publisher:
             parts.append(f"{address}{colon}{publisher}{sep}")
         elif publisher:
@@ -214,7 +214,7 @@ class ReferenceDB:
         if authors:
             parts.append(authors + ". ")
         if title:
-            parts.append(title + "[D].")
+            parts.append(title + "[D]. ")
         if address and school:
             parts.append(f"{address}{colon}{school}{sep}")
         elif school:
@@ -253,7 +253,7 @@ class ReferenceDB:
             title_part = title
             if number:
                 title_part += f": {number}"
-            parts.append(title_part + "[S].")
+            parts.append(title_part + "[S]. ")
         if address and publisher:
             parts.append(f"{address}{colon}{publisher}{sep}")
         elif publisher:
@@ -290,7 +290,7 @@ class ReferenceDB:
             title_part = title
             if number:
                 title_part += f": {number}"
-            parts.append(title_part + "[P].")
+            parts.append(title_part + "[P]. ")
         if country:
             parts.append(f"{country}{sep}")
         if year:
@@ -320,7 +320,7 @@ class ReferenceDB:
         if authors:
             parts.append(authors + ". ")
         if title:
-            parts.append(title + "[R].")
+            parts.append(title + "[R]. ")
         if address and institution:
             parts.append(f"{address}{colon}{institution}{sep}")
         elif institution:
@@ -354,7 +354,7 @@ class ReferenceDB:
         if authors:
             parts.append(authors + ". ")
         if title:
-            parts.append(title + "[EB/OL].")
+            parts.append(title + "[EB/OL]. ")
         if year:
             date = year
             if month:
@@ -381,6 +381,12 @@ class ReferenceDB:
         # 分割多位作者
         authors = re.split(r"\s+and\s+", author_str.strip())
         authors = [a.strip() for a in authors if a.strip()]
+
+        # BibTeX "and others" → 标记省略
+        has_ellipsis = False
+        if authors and authors[-1].lower() == "others":
+            authors = authors[:-1]
+            has_ellipsis = True
 
         formatted = []
         has_chinese = False
@@ -413,13 +419,16 @@ class ReferenceDB:
         else:
             sep = ", "
 
-        # 超过3个时省略
+        # 超过3个时省略，或 BibTeX 中有 "and others"
+        ellipsis_cn = "，等" if (has_chinese and not has_foreign) else ", et al"
         if len(formatted) > 3:
-            if has_chinese and not has_foreign:
-                return sep.join(formatted[:3]) + "，等"
+            return sep.join(formatted[:3]) + ellipsis_cn
+        if has_ellipsis:
+            if len(formatted) > 0:
+                return sep.join(formatted) + ellipsis_cn
             else:
-                return sep.join(formatted[:3]) + ", et al"
-        elif len(formatted) == 3:
+                return "等" if (has_chinese and not has_foreign) else "et al"
+        if len(formatted) == 3:
             return sep.join(formatted)
         elif len(formatted) == 2:
             return sep.join(formatted)
@@ -434,3 +443,23 @@ class ReferenceDB:
         has_chinese = bool(re.search(r"[一-鿿]", text))
         has_latin = bool(re.search(r"[A-Za-z]", text))
         return has_chinese and not has_latin
+
+    @staticmethod
+    def _clean_latescapes(entry: dict) -> dict:
+        """清理 BibTeX 字段中残留的 LaTeX 转义序列"""
+        LATEX_MAP = {
+            "\\&": "&",
+            "\\$": "$",
+            "\\%": "%",
+            "\\#": "#",
+            "\\_": "_",
+            "\\{": "{",
+            "\\}": "}",
+            "\\\\": "\\",
+        }
+        for key, val in entry.items():
+            if isinstance(val, str):
+                for old, new in LATEX_MAP.items():
+                    val = val.replace(old, new)
+                entry[key] = val
+        return entry

@@ -581,7 +581,7 @@ class Thesis:
         if isinstance(bib, list):
             for ref in bib:
                 para2 = self.doc.add_paragraph()
-                para2.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                para2.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
                 para2.paragraph_format.line_spacing = Pt(20.5)
                 para2.paragraph_format.space_before = Pt(0)
                 para2.paragraph_format.space_after = Pt(6)
@@ -599,7 +599,7 @@ class Thesis:
         refs = bib.get_references_in_citation_order()
         for idx, ref_str in enumerate(refs, start=1):
             para2 = self.doc.add_paragraph()
-            para2.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            para2.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
             para2.paragraph_format.line_spacing = Pt(20.5)
             para2.paragraph_format.space_before = Pt(0)
             para2.paragraph_format.space_after = Pt(6)
