@@ -397,10 +397,11 @@ class ReferenceDB:
                 if len(parts) >= 2:
                     last = parts[0].strip().upper()
                     initials_raw = parts[1].strip()
-                    # 提取首字母，移除所有非字母字符
-                    initials = re.sub(r"[^a-zA-Z]", "", initials_raw)
-                    # 转为大写，空格分隔
-                    initials_formatted = " ".join(c.upper() for c in initials)
+                    # 按空格/点号分词，每段取首字母
+                    # "A." -> "A", "Shyue Ping" -> "S P", "W. A." -> "W A"
+                    words = re.split(r"[\s.]+", initials_raw)
+                    words = [w for w in words if w]
+                    initials_formatted = " ".join(w[0].upper() for w in words)
                     formatted.append(f"{last} {initials_formatted}")
                 else:
                     formatted.append(author)
